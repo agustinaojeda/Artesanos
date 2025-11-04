@@ -81,18 +81,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   cerrarConexion($conexion);
 }
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro | Artesanos</title>
-  
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-  
-  <link rel="stylesheet" href="../../public/assets/css/re.css">
-</head>
-<body>
 
 
 <div class="register-container" id="registro">
@@ -165,7 +153,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <small class="error-text"></small>
       </div>
 
-      <button type="button" class="btn btn-outline" onclick="window.location.href='login.php'">Ya tengo una cuenta</button>
+      <button type="button" class="btn btn-outline" onclick="mostrarLogin()">Ya tengo una cuenta</button>
       <button type="submit" class="btn btn-main">Registrarse</button>
     </form>
   </div>
@@ -242,10 +230,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-
-</body>
-</html>
-
 
 
 

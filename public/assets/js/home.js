@@ -418,3 +418,16 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 }); 
+
+function mostrarRegistro() {
+  // Oculta el login
+  document.getElementById('bloqueLogin').style.display = 'none';
+
+  // Muestra el registro
+  document.getElementById('bloqueRegistro').style.display = 'block';
+}
+function mostrarLogin() {
+  document.getElementById('bloqueLogin').style.display = 'block';
+
+  document.getElementById('bloqueRegistro').style.display = 'none';
+}

@@ -53,11 +53,11 @@ if (!$usuario || !isset($usuario['idUsuario'])) {
 
 if (isset($_GET['ajax'])) {
     ob_start();
-    include 'detalleAlbumIzquierda.php'; // o el bloque HTML que muestra las fotos
+    include 'detalleAlbumIzquierda.php'; // muestra las fotos
     $izquierda = ob_get_clean();
 
     ob_start();
-    include 'detalleAlbumDerecha.php'; // o el bloque que muestra descripción, usuario, etc.
+    include 'detalleAlbumDerecha.php'; // muestra descripción, usuario, etc.
     $derecha = ob_get_clean();
 
     $response = [
@@ -144,7 +144,7 @@ foreach ($imagenes as $img) {
 }
 
 if ($idUsuario == 0) {
-    $htmlIzquierda .= '<p class="text-muted mt-4">Inicia sesión para agregar comentarios.</p>';
+    $htmlIzquierda .= '<p class="text-muted mt-4">Inicia sesión para interactuar con la publicación.</p>';
 } else {
     $avatar = obtenerAvatar($idUsuario);
     $htmlIzquierda .= '<div id="formularioComentario" class="d-flex align-items-start gap-2 mt-4">
@@ -164,7 +164,7 @@ $htmlIzquierda .= '<div id="listaComentarios" class="mt-3"></div>';
 // HTML DERECHA: perfil
 $htmlDerecha = '<div class="text-center mt-5">
   <img src="' . obtenerAvatar($usuario['idUsuario']) . '" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
-  <h5>' . htmlspecialchars($usuario['apodo'] ?? 'Sin apodo') . '</h5>
+  <h5>' . htmlspecialchars($usuario['apodo'] ?? '') . '</h5>
   <p class="text-muted">@' . htmlspecialchars($usuario['arroba'] ?? '') . '</p>
   <div class="d-flex justify-content-center gap-3 mt-2">
     <div><strong>' . (int)$cantAlbumes . '</strong><br><small>Álbumes</small></div>
