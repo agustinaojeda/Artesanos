@@ -51,7 +51,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       $user = $resultado->fetch_assoc();
 
       if (password_verify($password, $user['contrasenaUsuario'])) {
-        // Guardamos la sesión con el nombre real del archivo de imagen
         $_SESSION['usuario'] = [
           'id'       => $user['idUsuario'],
           'nombre'   => $user['nombreUsuario'],
@@ -62,9 +61,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
           'avatar'   => $user['avatar']
         ];
 
-        $serverMessage = 'Inicio de sesión exitoso. Redirigiendo...';
-        $serverMessageType = 'success';
-        $redirScript = "<script>setTimeout(()=>{ window.location.href = 'home.php'; }, 500);</script>";
+        // ✅ Redirigimos inmediatamente al home
+        header('Location: home.php');
+        exit;
       } else {
         $_SESSION['serverMessage'] = 'Contraseña incorrecta.';
         $_SESSION['serverMessageType'] = 'danger';
