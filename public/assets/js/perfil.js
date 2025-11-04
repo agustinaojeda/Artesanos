@@ -5,21 +5,64 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalBodyDer = document.getElementById("detalleAlbumDerecha");
   const fotoPerfil = document.getElementById("modalFotoPerfil");
 
-  function tiempoRelativo(fech) {
-    let fecha = new Date(fech);
-    let ahora = new Date();
-    let diffMs = ahora - fecha;
-    let diffSeg = Math.floor(diffMs / 1000);
-    let diffMin = Math.floor(diffSeg / 60);
-    let diffHoras = Math.floor(diffMin / 60);
-    let diffDias = Math.floor(diffHoras / 24);
+// Convierte "YYYY-MM-DD HH:MM:SS" (MySQL) o "YYYY-MM-DDTHH:MM:SS" a milisegundos
+function parseMySQLDateToMs(mysqlDate) {
+  if (!mysqlDate || typeof mysqlDate !== "string") return NaN;
+  // Limpiar por si trae microsegundos u otros caracteres
+  mysqlDate = mysqlDate.trim().replace(/\.\d+$/, ""); // quita .000000 si existiera
 
-    if (diffSeg < 60) return `hace ${diffSeg} segundos`;
-    if (diffMin < 60) return `hace ${diffMin} minutos`;
-    if (diffHoras < 24) return `hace ${diffHoras} horas`;
-    if (diffDias === 1) return `ayer`;
-    return `hace ${diffDias} días`;
+  // Acepta "YYYY-MM-DD HH:MM:SS" o "YYYY-MM-DDTHH:MM:SS"
+  const parts = mysqlDate.split(/[\sT]/);
+  if (parts.length < 2) return NaN;
+
+  const fechaPart = parts[0].split("-");
+  const horaPart = parts[1].split(":");
+  if (fechaPart.length !== 3 || horaPart.length < 2) return NaN;
+
+  const year = parseInt(fechaPart[0], 10);
+  const month = parseInt(fechaPart[1], 10) - 1; // JS month 0-11
+  const day = parseInt(fechaPart[2], 10);
+  const hour = parseInt(horaPart[0], 10);
+  const minute = parseInt(horaPart[1], 10);
+  const second = horaPart.length > 2 ? parseInt(horaPart[2], 10) : 0;
+
+  // Crea la fecha en zona local (evita problemas de interpretación automática)
+  return new Date(year, month, day, hour, minute, second).getTime();
+}
+
+function tiempoRelativo(fech, ahoraMs = Date.now()) {
+  if (!fech) return "fecha inválida";
+
+  // Si ya es number, usarlo; si es string MySQL, parsearlo
+  const fechaMs = typeof fech === "number" ? fech : parseMySQLDateToMs(fech);
+
+  if (!isFinite(fechaMs)) {
+    console.warn("Fecha inválida recibida:", fech);
+    return "fecha inválida";
   }
+
+  let diffMs = ahoraMs - fechaMs;
+  if (diffMs < 0) diffMs = 0;
+
+  const diffSeg = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSeg / 60);
+  const diffHoras = Math.floor(diffMin / 60);
+  const diffDias = Math.floor(diffHoras / 24);
+
+  if (diffSeg < 60) return `hace ${diffSeg} segundos`;
+  if (diffMin < 60) return `hace ${diffMin} minutos`;
+  if (diffHoras < 24) return `hace ${diffHoras} horas`;
+  if (diffDias === 1) return `ayer`;
+  if (diffDias < 30) return `hace ${diffDias} días`;
+
+  const diffMeses = Math.floor(diffDias / 30);
+  if (diffMeses < 12) return `hace ${diffMeses} meses`;
+
+  const diffAnios = Math.floor(diffMeses / 12);
+  return `hace ${diffAnios} años`;
+}
+
+
 
   document.querySelectorAll(".album-card").forEach((card) => {
     card.addEventListener("click", async () => {
