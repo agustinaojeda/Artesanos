@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+  session_start();
+}
 require_once '../../config/conexion.php';
 require_once '../../config/cerrarConexion.php';
 
@@ -20,7 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   } else {
     $conexion = abrirConexion();
 
-    // 🔥 Traemos también la imagen de perfil del usuario
+    // Traemos también la imagen de perfil del usuario
     $stmt = $conexion->prepare("
       SELECT 
         u.idUsuario,
@@ -43,7 +45,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       $user = $resultado->fetch_assoc();
 
       if (password_verify($password, $user['contrasenaUsuario'])) {
-        // ✅ Guardamos la sesión con el nombre real del archivo de imagen
+        // Guardamos la sesión con el nombre real del archivo de imagen
         $_SESSION['usuario'] = [
           'id'       => $user['idUsuario'],
           'nombre'   => $user['nombreUsuario'],
@@ -51,7 +53,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
           'apodo'    => $user['apodoUsuario'],
           'arroba'   => $user['arrobaUsuario'],
           'correo'   => $user['correoUsuario'],
-          'avatar'   => $user['avatar'] // ← ahora contiene el nombre del archivo real
+          'avatar'   => $user['avatar'] 
         ];
 
         $serverMessage = 'Inicio de sesión exitoso. Redirigiendo...';
@@ -77,21 +79,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   }
 }
 ?>
-<!DOCTYPE html>
-<html lang="es">
-
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Iniciar Sesión | Artesanos</title>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="../../public/assets/css/re.css">
-  <link rel="stylesheet" href="../../public/assets/css/modalRecContra.css">
-</head>
-
-<body>
   <div class="register-container" id="registro">
     <div class="register-logo">
       <img src="../../public/assets/images/logo.png" alt="Artesanos" width="80">
@@ -128,7 +115,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         <div class="button-row">
           <button type="submit" class="btn btn-main w-100 mb-2">Iniciar sesión</button>
-          <button type="button" class="btn btn-outline w-100" onclick="window.location.href='home.php#registro'">Quiero registrarme</button>
+          <button type="button" class="btn btn-outline w-100" onclick="mostrarRegistro()">Quiero registrarme</button>
         </div>
       </form>
     </div>
@@ -147,8 +134,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
           <input type="email" name="correo" id="correoRecuperar" class="form-control" placeholder="Tu correo" required>
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-warning">Enviar</button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btnRecuperar">Enviar</button>
+          <button type="button" class="btn btnCancelar" data-bs-dismiss="modal">Cancelar</button>
         </div>
       </form>
     </div>
@@ -188,5 +175,3 @@ document.getElementById("formRecuperar").addEventListener("submit", async (e) =>
 
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>

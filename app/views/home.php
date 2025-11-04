@@ -70,52 +70,61 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
                      style="max-height: 23px; cursor: pointer;">
               </div>
             </div>';
-    }
-  }
-        if ($idUsuario != 0) { //si el usuario esta logueado muestra el boton de cargar mas
-          echo '  <div class="text-center mt-4">
-          <button id="loadMore" class="btn btn-primary">Mostrar más</button>
-          </div>';
-        
+        }
       } else {
         echo '<p class="text-center">Aún no hay álbumes disponibles.<br>¡Sé el primero en publicar!';
+      }
+      if ($idUsuario != 0) { //si el usuario esta logueado muestra el boton de cargar mas
+        echo '  <div class="text-center mt-4">
+          <button id="loadMore" class="btn btn-primary">Mostrar más</button>
+          </div>';
       }
       ?>
     </div>
   </div>
   <!-- detalle de album-->
-<div class="modal fade" id="modalDetalleAlbum" tabindex="-1" aria-labelledby="modalDetalleAlbumLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content p-4">
-      <div class="modal-header d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-3">
-          <img id="modalFotoPerfil" src="" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
-          <h5 class="modal-title mb-0" id="modalDetalleAlbumLabel">Nombre del usuario</h5>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-          <button id="btnSeguir" class="btn btn-outline-primary btn-sm">Seguir</button>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-      </div>
-
-      <div class="modal-body">
-        <div class="row">
-          <div class="col-lg-9" id="detalleAlbumIzquierda">
-            <!-- acá va el carrusel de las imágenes -->
+  <div class="modal fade" id="modalDetalleAlbum" tabindex="-1" aria-labelledby="modalDetalleAlbumLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content p-4">
+        <div class="modal-header d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-3">
+            <img id="modalFotoPerfil" src="" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
+            <h5 class="modal-title mb-0" id="modalDetalleAlbumLabel">Nombre del usuario</h5>
           </div>
+          <div class="d-flex align-items-center gap-2">
+            <?php if ($idUsuario != 0): ?>
+              <button id="btnSeguir" class="btn btn-outline-primary btn-sm">Seguir</button>
+            <?php endif; ?>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+        </div>
 
-          <div class="col-lg-3" id="detalleAlbumDerecha">
-            <!-- acá va el perfil -->
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-lg-9" id="detalleAlbumIzquierda">
+              <!-- acá va el carrusel de las imágenes -->
+            </div>
+
+            <div class="col-lg-3" id="detalleAlbumDerecha">
+              <!-- acá va el perfil -->
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 
+  <?php if ($idUsuario == 0): ?>
+    <div id="registroBl">
+      <div id="bloqueRegistro">
+        <?php include 'registro.php'; ?>
+      </div>
+      <div id="bloqueLogin" style="display:none;">
+        <?php include 'login.php'; ?>
+      </div>
+    </div>
 
-  <?php if ($idUsuario == 0): include 'registro.php';
-  else: ?>
+  <?php else: ?>
     <!-- boton para crear album -->
     <div id="mostrarFormulario" data-bs-toggle="modal" data-bs-target="#modalCrearAlbum"><span class="fs-5 fw-bold" style="transform: translateY(-2px); display: inline-block;">+</span></div>
 

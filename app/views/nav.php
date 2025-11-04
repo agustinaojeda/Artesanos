@@ -33,7 +33,7 @@ if ($idUsuario > 0) {
     <div class="collapse navbar-collapse" id="menuNav">
       <div class="d-flex flex-column flex-lg-row align-items-center justify-content-between w-100 gap-3 py-2">
 
-      <!-- 🔍 Barra de búsqueda -->
+      <!-- Barra de búsqueda -->
     <div class="busqueda-wrapper position-relative mx-auto mt-1" style="max-width:600px;">
       <form method="GET" action="busqueda.php" class="mx-auto position-relative" id="formBusqueda" style="max-width:100%;">
     
@@ -52,11 +52,11 @@ if ($idUsuario > 0) {
       <button type="submit" style="display:none"></button>
      </form>
     </div>
-        <!-- 👤 Parte derecha (sesión / perfil) -->
+        <!-- Parte derecha (sesión / perfil) -->
         <div class="d-flex justify-content-center justify-content-lg-end align-items-center gap-3 ms-lg-3">
           <?php if (!isset($_SESSION['usuario'])): ?>
             <!-- No logueado -->
-            <a href="login.php" class="btn follow-btn text-white px-4 rounded-5" role="button">
+            <a href="home.php#registroBl" class="btn follow-btn text-white px-4 rounded-5" role="button">
               <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
             </a>
           <?php else: ?>
@@ -71,7 +71,7 @@ if ($idUsuario > 0) {
                 <?php endif; ?>
               </button>
 
-              <!-- 🔔 Dropdown de notificaciones -->
+              <!--  Dropdown de notificaciones -->
               <div id="dropdownNotificaciones" 
                   class="card shadow border-0 position-absolute end-0 mt-2" 
                   style="width: 350px; display: none; z-index: 1050;">
@@ -88,7 +88,7 @@ if ($idUsuario > 0) {
 
 
             <?php
-              // 📦 Incluir helper y obtener avatar
+              //  Incluir helper y obtener avatar
               require_once dirname(__DIR__) . '/models/usuarioHelper.php';
               $avatarSrc = obtenerAvatar((int)$_SESSION['usuario']['id']);
             ?>
