@@ -9,6 +9,8 @@ $idUsuario = isset($_SESSION['usuario']['id']) ? (int)$_SESSION['usuario']['id']
 
 $albumes = new AlbumCont();
 $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la bd
+
+$mostrarLogin = isset($_SESSION['mostrarLogin']) && $_SESSION['mostrarLogin'] === true;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -35,18 +37,18 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
   <div class="container mt-4">
     <div class="row row-cols-2 row-cols-md-4 g-5">
 
-<?php
-  if (!empty($albumes) && count($albumes) > 0) {
-    foreach ($albumes as $a) {
-      // Si necesitas portada de imagen, la sig línea la puedes seguir usando para mostrar la imagen,
-      // pero el like del Home será por álbum, no por imagen.
-      $idImagenPortada = isset($a->idImagenPortada) ? (int)$a->idImagenPortada : (int)$a->idAlbum;
-      $urlPortada = htmlspecialchars($a->urlPortada);
-      $tituloAlbum = htmlspecialchars($a->tituloAlbum);
-      $apodoUsuario = htmlspecialchars($a->apodoUsuario);
-      $arrobaUsuario = htmlspecialchars(ltrim($a->arrobaUsuario, '@'));
+      <?php
+      if (!empty($albumes) && count($albumes) > 0) {
+        foreach ($albumes as $a) {
+          // Si necesitas portada de imagen, la sig línea la puedes seguir usando para mostrar la imagen,
+          // pero el like del Home será por álbum, no por imagen.
+          $idImagenPortada = isset($a->idImagenPortada) ? (int)$a->idImagenPortada : (int)$a->idAlbum;
+          $urlPortada = htmlspecialchars($a->urlPortada);
+          $tituloAlbum = htmlspecialchars($a->tituloAlbum);
+          $apodoUsuario = htmlspecialchars($a->apodoUsuario);
+          $arrobaUsuario = htmlspecialchars(ltrim($a->arrobaUsuario, '@'));
 
-      echo '<div class="col album-item">
+          echo '<div class="col album-item">
               <a href="#" class="abrir-modal-album" data-id="' . (int)$a->idAlbum . '" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum" style="text-decoration: none; color: inherit;">
                 <div class="card-body">
                   <img class="card-img-top" style="border-radius: 10px; height: 200px; object-fit: cover;" src="../../public/uploads/portadas/' . $urlPortada . '"/>
@@ -72,9 +74,11 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
             </div>';
         }
       } else {
-        echo '<p class="text-center">Aún no hay álbumes disponibles.<br>¡Sé el primero en publicar!';
+        echo '<div class="container text-center mt-5">
+          <p>Aún no hay álbumes disponibles.<br>¡Sé el primero en publicar!</p>
+        </div>';
       }
-      if ($idUsuario != 0) { //si el usuario esta logueado muestra el boton de cargar mas
+      if ($idUsuario != 0 && !empty($albumes)) { //si el usuario esta logueado muestra el boton de cargar mas
         echo '  <div class="text-center mt-4">
           <button id="loadMore" class="btn btn-primary">Mostrar más</button>
           </div>';
@@ -116,13 +120,15 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
 
   <?php if ($idUsuario == 0): ?>
     <div id="registroBl">
-      <div id="bloqueRegistro">
+      
+      <div id="bloqueRegistro" style="<?php echo $mostrarLogin ? 'display:none;' : 'display:block;'; ?>">
         <?php include 'registro.php'; ?>
       </div>
-      <div id="bloqueLogin" style="display:none;">
+      <div id="bloqueLogin" style="<?php echo $mostrarLogin ? 'display:block;' : 'display:none;'; ?>">
         <?php include 'login.php'; ?>
       </div>
     </div>
+    <?php unset($_SESSION['mostrarLogin']); ?>
 
   <?php else: ?>
     <!-- boton para crear album -->

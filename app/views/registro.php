@@ -69,7 +69,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if ($insert->execute()) {
           $serverMessage = 'Registro exitoso. Redirigiendo al login...';
           $serverMessageType = 'success';
-          $redirScript = "<script>setTimeout(()=>{ window.location.href = 'login.php'; }, 2000);</script>";
+          $redirScript = "<script>setTimeout(()=>{ window.location.href = 'home.php#registro'; }, 2000);</script>";
         } else {
           $serverMessage = 'Error al registrar: ' . htmlspecialchars($insert->error);
           $serverMessageType = 'danger';

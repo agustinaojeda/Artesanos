@@ -728,7 +728,7 @@ if (btnCrearEl) btnCrearEl.addEventListener("click", function (e) {
       });
     });
   }
-}); 
+); 
 
 function mostrarRegistro() {
   // Oculta el login
