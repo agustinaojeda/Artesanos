@@ -168,7 +168,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <small class="error-text"></small>
       </div>
 
-      <button type="button" class="btn btn-outline" onclick="window.location.href='login.php'">Ya tengo una cuenta</button>
+      <button type="button" class="btn btn-outline" onclick="mostrarLogin()">Ya tengo una cuenta</button>
       <button type="submit" class="btn btn-main">Registrarse</button>
     </form>
   </div>

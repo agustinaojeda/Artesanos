@@ -21,7 +21,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if ($stmt->affected_rows > 0) {
             echo "<script>
                 alert('Tu contraseña ha sido actualizada exitosamente.');
-                window.location.href='login.php';
+                window.location.href='home.php#registro';
             </script>";
         } else {
             echo "<script>alert('No se pudo actualizar la contraseña. Verifica el correo.');</script>";

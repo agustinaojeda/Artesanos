@@ -44,20 +44,35 @@
 #inputPortada, #inputImagenes {
     display: none;
 }
-#btnSiguiente,#btnCrear,#btnSiguiente2, #btnSeguir {
-    padding: 6px 20px;
-    background-color: #ff7f45;
-    border: 1px solid #ff7f45;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    text-align: center;
-    transition: background-color 0.3s ease;
+#btnSiguiente,#btnCrear,#btnSiguiente2, #btnSeguir, .btnRecuperar {
+  padding: 6px 20px;
+  background-color: #ff7f45;
+  border: 1px solid #ff7f45;
+  color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.3s ease;
 }
-#btnSiguiente:hover,#btnCrear:hover,#btnSiguiente2:hover, #btnSeguir:hover {
+#btnSiguiente:hover,#btnCrear:hover,#btnSiguiente2:hover, #btnSeguir:hover, .btnRecuperar:hover {
   background-color: #fffffd;
   color: #ff7f45;
+  border: 1px solid #ff7f45;
+}
+
+.btnCancelar{
+  padding: 6px 20px;
+  background-color: #fffffd;
+  border: 1px solid #ff7f45;
+  color: #ff7f45;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.3s ease;
+}
+.btnCancelar:hover {
+  background-color: #ff7f45;
+  color: #fffffd;
   border: 1px solid #ff7f45;
 }
 
