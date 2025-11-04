@@ -38,12 +38,13 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
 <?php
   if (!empty($albumes) && count($albumes) > 0) {
     foreach ($albumes as $a) {
-      // Si no tenés idImagenPortada en $a, usamos idAlbum como fallback
+      // Si necesitas portada de imagen, la sig línea la puedes seguir usando para mostrar la imagen,
+      // pero el like del Home será por álbum, no por imagen.
       $idImagenPortada = isset($a->idImagenPortada) ? (int)$a->idImagenPortada : (int)$a->idAlbum;
       $urlPortada = htmlspecialchars($a->urlPortada);
       $tituloAlbum = htmlspecialchars($a->tituloAlbum);
       $apodoUsuario = htmlspecialchars($a->apodoUsuario);
-      $arrobaUsuario = htmlspecialchars($a->arrobaUsuario);
+      $arrobaUsuario = htmlspecialchars(ltrim($a->arrobaUsuario, '@'));
 
       echo '<div class="col album-item">
               <a href="#" class="abrir-modal-album" data-id="' . (int)$a->idAlbum . '" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum" style="text-decoration: none; color: inherit;">
@@ -59,9 +60,9 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
                 <img src="../../public/assets/images/like.png"
                      alt="Me gusta"
                      class="img-fluid btn-like-galeria"
-                     data-idimagen="' . $idImagenPortada . '"
+                     data-idalbum="' . (int)$a->idAlbum . '"
                      style="max-height: 25px; cursor: pointer;">
-                <span id="likes-count-album-' . $idImagenPortada . '" class="text-muted small align-self-center">0</span>
+                <span id="likes-count-album-' . (int)$a->idAlbum . '" class="text-muted small align-self-center">0</span>
 
                 <img src="../../public/assets/images/comentario.png"
                      alt="Comentario"
@@ -172,8 +173,8 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
             <div class="row">
               <div class="col-lg-3"></div>
               <div class="col-lg-4 col-12">
-                <label for="inputImagenes" class="imagenParaSubir"><img src="../../public/assets/images/agregarImagen.png" alt="Subir portada"></label>
-                <input type="file" name="inputImagenes" id="inputImagenes" accept="image/*" multiple>
+                <label for="inputImagenes" class="imagenParaSubir"><img src="../../public/assets/images/agregarImagen.png" alt="Subir imagen"></label>
+                <input type="file" name="inputImagenes" id="inputImagenes" accept="image/*">
 
                 <div class="invalid-feedback">Sube una imagen. El máximo son 20.</div>
               </div>
@@ -191,6 +192,8 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
               <button id="btnAnteriorImagen" type="button" class="btn btn-outline-secondary me-2">Anterior</button>
 
               <button id="btnSiguienteImagen" type="button" class="btn btn-secondary">Siguiente</button>
+
+              <button id="btnAgregarOtra" type="button" class="btn btn-outline-primary ms-2">Agregar otra imagen</button>
 
               <button id="btnCrear" class="mt-5">Crear álbum</button>
 

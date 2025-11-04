@@ -1,17 +1,21 @@
-function tiempoRelativo(fech) {
-  let fecha = new Date(fech);
-  let ahora = new Date();
-  let diffMs = ahora - fecha;
-  let diffSeg = Math.floor(diffMs / 1000);
-  let diffMin = Math.floor(diffSeg / 60);
-  let diffHoras = Math.floor(diffMin / 60);
-  let diffDias = Math.floor(diffHoras / 24);
+function tiempoRelativo(fech, ahoraMs = Date.now()) {
+  const fechaMs = typeof fech === "number" ? fech : new Date(fech).getTime();
+  let diffMs = ahoraMs - fechaMs;
+  if (!isFinite(diffMs)) diffMs = 0;
+  if (diffMs < 0) diffMs = 0;
+  const diffSeg = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSeg / 60);
+  const diffHoras = Math.floor(diffMin / 60);
+  const diffDias = Math.floor(diffHoras / 24);
 
   if (diffSeg < 60) return `hace ${diffSeg} segundos`;
   if (diffMin < 60) return `hace ${diffMin} minutos`;
   if (diffHoras < 24) return `hace ${diffHoras} horas`;
-  if (diffDias === 1) return `ayer`;
-  return `hace ${diffDias} días`;
+  if (diffDias < 30) return `hace ${diffDias} días`;
+  const diffMeses = Math.floor(diffDias / 30);
+  if (diffMeses < 12) return `hace ${diffMeses} meses`;
+  const diffAnios = Math.floor(diffMeses / 12);
+  return `hace ${diffAnios} años`;
 }
 
 
@@ -37,6 +41,27 @@ async function actualizarConteoLikes(idImagen) {
   } catch (err) {
     console.error("Error al cargar likes de imagen:", err);
     if (countDisplay) countDisplay.textContent = "0";
+  }
+}
+
+// Carga contador y estado (icono) del like para una imagen
+async function actualizarEstadoLikeImagen(idImagen) {
+  if (!idImagen) return;
+  try {
+    const resp = await fetch(`../controllers/obtenerLikes.php?idImagen=${encodeURIComponent(idImagen)}`);
+    const data = await resp.json();
+    if (resp.ok && data.totalLikes !== undefined) {
+      const mostradorModal = document.getElementById("likes-count-display");
+      if (mostradorModal) mostradorModal.textContent = data.totalLikes;
+      const btnLikeModal = document.getElementById("btn-like-imagen");
+      if (btnLikeModal) {
+        btnLikeModal.src = data.likedByUser
+          ? "../../public/assets/images/likelleno.png"
+          : "../../public/assets/images/like.png";
+      }
+    }
+  } catch (err) {
+    console.warn("No se pudo cargar estado de like de imagen", err);
   }
 }
 
@@ -94,32 +119,30 @@ async function manejarMeGusta(idImagen) {
       return;
     }
 
-    // 2️⃣ - BOTÓN DE LIKE DE LA GALERÍA (Home)
+    // 2️⃣ - BOTÓN DE LIKE DE LA GALERÍA (Home) → Like de ÁLBUM
     const btnLikeGaleria = e.target.closest(".btn-like-galeria");
     if (btnLikeGaleria) {
       e.preventDefault();
-
-      // Usamos idImagen (asegurate que en home.php lo imprimiste como data-idimagen)
-      const idImagen = btnLikeGaleria.dataset.idimagen;
-      if (!idImagen) {
-        console.error("❌ No se encontró data-idimagen en el botón de galería");
+  
+      const idAlbum = btnLikeGaleria.dataset.idalbum;
+      if (!idAlbum) {
+        console.error("❌ No se encontró data-idalbum en el botón de galería");
         return;
       }
-
+  
       try {
         const resp = await fetch("../views/megusta.php", {
           method: "POST",
-          body: new URLSearchParams({ idImagen }),
+          body: new URLSearchParams({ idAlbum }),
         });
-
+  
         const data = await resp.json();
-
+  
         if (resp.ok && data.totalLikes !== undefined) {
-          // Actualiza el contador visible en el home
-          const contador = document.querySelector(`#likes-count-album-${idImagen}`);
+          const contador = document.querySelector(`#likes-count-album-${idAlbum}`);
           if (contador) contador.textContent = data.totalLikes;
-
-          // Opcional: cambiar el ícono si el usuario ya dio like
+  
+          // Cambia el icono si corresponde
           if (data.accion === "like") {
             btnLikeGaleria.src = "../../public/assets/images/likelleno.png";
           } else if (data.accion === "dislike") {
@@ -135,20 +158,22 @@ async function manejarMeGusta(idImagen) {
     }
   });
 
-  // --- Inicializar: cargar conteos de likes para botones de galería (opcional) ---
+  // --- Inicializar: cargar conteos de likes para botones de galería (álbum) ---
   document.querySelectorAll(".btn-like-galeria").forEach(async (el) => {
-    const idImagen = el.dataset.idimagen;
-    if (!idImagen) return;
+    const idAlbum = el.dataset.idalbum;
+    if (!idAlbum) return;
     try {
-      const resp = await fetch(`../controllers/obtenerLikes.php?idImagen=${encodeURIComponent(idImagen)}`);
+      const resp = await fetch(`../controllers/obtenerLikes.php?idAlbum=${encodeURIComponent(idAlbum)}`);
       const data = await resp.json();
       if (resp.ok && data.totalLikes !== undefined) {
-        const contador = document.getElementById(`likes-count-album-${idImagen}`);
+        const contador = document.getElementById(`likes-count-album-${idAlbum}`);
         if (contador) contador.textContent = data.totalLikes;
+        el.src = (data.likedByUser)
+          ? "../../public/assets/images/likelleno.png"
+          : "../../public/assets/images/like.png";
       }
     } catch (err) {
-      // no interrumpe la carga si falla alguno
-      console.warn("No se pudieron cargar likes iniciales para", idImagen, err);
+      console.warn("No se pudieron cargar likes iniciales para", idAlbum, err);
     }
   });
 
@@ -161,16 +186,19 @@ document.querySelectorAll(".abrir-modal-album").forEach((el) => {
     fetch(`../controllers/detalleAlbum.php?id=${idAlbum}`)
       .then((res) => res.json())
       .then((data) => {
-        let fechaRelativa = tiempoRelativo(data.fecha);
         console.log(data);
+        // Guardar timestamp base del álbum para cálculo relativo
+        window.serverFechaUnix = data.fechaUnix;
         //datos del usuario
         document.getElementById("modalDetalleAlbumLabel").innerHTML = `
-        <div class="d-flex flex-column">
+        <div class="d-flex flex-column gap-1">
           <div class="d-flex align-items-center gap-2">
             <h4 class="mb-0"><strong>${data.apodo}</strong></h4>
             <div class="text-muted fw-light"><small> - @${data.usuario}</small></div>
           </div>
-          <div class="text-muted mt-1 fw-light" style="font-size: 0.9rem;">${fechaRelativa}</div>
+          <div class="d-flex align-items-center">
+            <div class="text-muted mt-1 fw-light" style="font-size: 0.9rem;"><span id="fechaRelativaLabel">${tiempoRelativo(data.fechaUnix, Date.now())}</span></div>
+          </div>
         </div>
         `;
 
@@ -182,6 +210,41 @@ document.querySelectorAll(".abrir-modal-album").forEach((el) => {
         document.getElementById("detalleAlbumIzquierda").innerHTML =
           data.izquierda;
         document.getElementById("detalleAlbumDerecha").innerHTML = data.derecha;
+
+        // Actualizar tiempo relativo con hora local y mantenerlo actualizado cada minuto
+        const actualizarFechaHeader = () => {
+          const label = document.getElementById("fechaRelativaLabel");
+          if (label && window.serverFechaUnix) {
+            label.textContent = tiempoRelativo(window.serverFechaUnix, Date.now());
+          }
+        };
+        actualizarFechaHeader();
+        if (window.relativeTimeTimer) clearInterval(window.relativeTimeTimer);
+        window.relativeTimeTimer = setInterval(actualizarFechaHeader, 60000);
+        const modalEl = document.getElementById("modalDetalleAlbum");
+        if (modalEl) {
+          modalEl.addEventListener("hidden.bs.modal", () => {
+            if (window.relativeTimeTimer) {
+              clearInterval(window.relativeTimeTimer);
+              window.relativeTimeTimer = null;
+            }
+          }, { once: true });
+        }
+        // Inicializar estado de like y contador para la imagen activa
+        setTimeout(() => {
+          const carr = document.getElementById("carouselAlbum");
+          if (carr) {
+            const activo = carr.querySelector(".carousel-item.active");
+            if (activo) {
+              const idImgActivo = activo.getAttribute("data-idimagen");
+              const btnLike = document.getElementById("btn-like-imagen");
+              if (btnLike && idImgActivo) {
+                btnLike.dataset.idimagen = idImgActivo;
+                actualizarEstadoLikeImagen(idImgActivo);
+              }
+            }
+          }
+        }, 0);
         setTimeout(() => {
           const btnEnviar = document.getElementById("btnEnviarComentario");
           const inputComentario = document.getElementById("inputComentario");
@@ -236,10 +299,17 @@ document.querySelectorAll(".abrir-modal-album").forEach((el) => {
           let titulo = activo.getAttribute("data-titulo") || "";
           let descripcion = activo.getAttribute("data-descripcion") || "";
           let idImagen = activo.getAttribute("data-idimagen");
+          let fechaUnixSlide = activo.getAttribute("data-fechaunix");
 
           document.getElementById("tituloImagen").textContent = titulo;
           document.getElementById("descripcionImagen").textContent =
             descripcion;
+
+          // Actualizar el tiempo relativo usando la hora local del dispositivo
+          const fechaLabel = document.getElementById("fechaRelativaLabel");
+          if (fechaLabel) {
+            fechaLabel.textContent = tiempoRelativo(window.serverFechaUnix, Date.now());
+          }
 
           let comentarios = data.comentarios[idImagen] || [];
           let htmlComentarios = comentarios
@@ -262,6 +332,12 @@ document.querySelectorAll(".abrir-modal-album").forEach((el) => {
           document
             .getElementById("btnEnviarComentario")
             .setAttribute("data-idimagen", idImagen);
+          // Actualizar dataset del botón de like y cargar estado
+          const btnLike = document.getElementById("btn-like-imagen");
+          if (btnLike && idImagen) {
+            btnLike.dataset.idimagen = idImagen;
+            actualizarEstadoLikeImagen(idImagen);
+          }
         }
 
         actualizarInfoImagen();
@@ -284,19 +360,21 @@ document.addEventListener("DOMContentLoaded", function () {
     if (index >= currentItems) album.style.display = "none";
   });
 
-  loadMoreBtn.addEventListener("click", () => {
-    for (let i = currentItems; i < currentItems + itemsPerPage; i++) {
-      if (albums[i]) albums[i].style.display = "block";
-    }
-    currentItems += itemsPerPage;
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", () => {
+      for (let i = currentItems; i < currentItems + itemsPerPage; i++) {
+        if (albums[i]) albums[i].style.display = "block";
+      }
+      currentItems += itemsPerPage;
 
-    if (currentItems >= albums.length) {
+      if (currentItems >= albums.length) {
+        loadMoreBtn.style.display = "none";
+      }
+    });
+
+    if (albums.length <= itemsPerPage) {
       loadMoreBtn.style.display = "none";
     }
-  });
-
-  if (albums.length <= itemsPerPage) {
-    loadMoreBtn.style.display = "none";
   }
 });
 
@@ -343,7 +421,8 @@ function mostrarSigForm() {
 }
 
 //muestra la vista previa de la portada
-document.getElementById("inputPortada").addEventListener("change", function () {
+const elPortada = document.getElementById("inputPortada");
+if (elPortada) elPortada.addEventListener("change", function () {
   let archivo = this.files[0];
   let preview = document.getElementById("previoPortada");
 
@@ -360,9 +439,8 @@ document.getElementById("inputPortada").addEventListener("change", function () {
   }
 });
 
-document
-  .getElementById("inputImagenes")
-  .addEventListener("change", function () {
+const elInputImgs = document.getElementById("inputImagenes");
+if (elInputImgs) elInputImgs.addEventListener("change", function () {
     let cantidad = this.files.length;
 
     if (cantidad > 0) {
@@ -372,6 +450,32 @@ document
 
 let imagenes = [];
 let indiceActual = 0;
+
+// Permite agregar otra imagen de forma secuencial
+function agregarOtraImagen() {
+  if (imagenes.length >= 20) {
+    if (window.Swal) {
+      Swal.fire({
+        icon: "info",
+        title: "Límite alcanzado",
+        text: "El máximo son 20 imágenes por álbum.",
+      });
+    }
+    return;
+  }
+
+  const picker = document.createElement("input");
+  picker.type = "file";
+  picker.accept = "image/*";
+  picker.onchange = function () {
+    const file = picker.files && picker.files[0];
+    if (!file) return;
+    imagenes.push(file);
+    indiceActual = imagenes.length - 1;
+    mostrarImagenActual();
+  };
+  picker.click();
+}
 
 function mostrarSigForm2() {
   let input = document.getElementById("inputImagenes");
@@ -426,6 +530,7 @@ function mostrarImagenActual() {
     let btnCrear = document.getElementById("btnCrear");
     let btnSiguiente = document.getElementById("btnSiguienteImagen");
     let btnAnterior = document.getElementById("btnAnteriorImagen");
+    let btnAgregarOtra = document.getElementById("btnAgregarOtra");
 
     btnAnterior.classList.toggle("d-none", indiceActual === 0);
     btnSiguiente.classList.toggle(
@@ -433,6 +538,13 @@ function mostrarImagenActual() {
       indiceActual === imagenes.length - 1
     );
     btnCrear.classList.toggle("d-none", indiceActual !== imagenes.length - 1);
+    if (btnAgregarOtra) {
+      btnAgregarOtra.onclick = () => {
+        if (!validarImagenActual()) return;
+        guardarDatosImagenActual();
+        agregarOtraImagen();
+      };
+    }
 
     document.getElementById("btnSiguienteImagen").onclick = () => {
       if (!validarImagenActual()) return;
@@ -493,7 +605,8 @@ function validarImagenActual() {
   return valido;
 }
 
-document.getElementById("btnAnteriorImagen").addEventListener("click", () => {
+const btnAnteriorImagen = document.getElementById("btnAnteriorImagen");
+if (btnAnteriorImagen) btnAnteriorImagen.addEventListener("click", () => {
   guardarDatosImagenActual();
   if (indiceActual > 0) {
     indiceActual--;
@@ -502,7 +615,7 @@ document.getElementById("btnAnteriorImagen").addEventListener("click", () => {
 });
 
 let modalCrearAlbum = document.getElementById("modalCrearAlbum");
-modalCrearAlbum.addEventListener("hidden.bs.modal", function () {
+if (modalCrearAlbum) modalCrearAlbum.addEventListener("hidden.bs.modal", function () {
   //resetea el form si se cierra
   const form = document.getElementById("formCrearAlbum");
   form.reset();
@@ -535,7 +648,8 @@ document
 function actualizarVistaPrincipal() {}
 
 //envio del formulario
-document.getElementById("btnCrear").addEventListener("click", function (e) {
+const btnCrearEl = document.getElementById("btnCrear");
+if (btnCrearEl) btnCrearEl.addEventListener("click", function (e) {
   if (!validarImagenActual()) return;
   guardarDatosImagenActual();
   e.preventDefault();
@@ -548,19 +662,29 @@ document.getElementById("btnCrear").addEventListener("click", function (e) {
     document.getElementById("etiquetaAlb").value
   );
   formData.append("portada", document.getElementById("inputPortada").files[0]);
+  // privacidad (0: seguidores, 1: público)
+  const selPriv = document.querySelector('select[name="privacidad"]');
+  if (selPriv) {
+    formData.append("esPublico", selPriv.value);
+  }
 
   //imagenes
-  datosImagenes.forEach((img, i) => {
-    formData.append(`imagen${i}`, img.archivo);
-    formData.append(`tituloImagen${i}`, img.titulo);
-    formData.append(`descripcionImagen${i}`, img.descripcion);
-    formData.append(`etiquetaImagen${i}`, img.etiqueta);
-  });
-
-  formData.append("cantidadImagenes", datosImagenes.length);
-  for (let [key, value] of formData.entries()) {
-    console.log(key, value);
+  // Enviar todas las seleccionadas; si no hay datos cargados para alguna,
+  // usar valores por defecto y el archivo directo de 'imagenes'
+  for (let i = 0; i < imagenes.length; i++) {
+    const datos = datosImagenes[i] || {
+      archivo: imagenes[i],
+      titulo: "",
+      descripcion: "",
+      etiqueta: "",
+    };
+    formData.append(`imagen${i}`, datos.archivo);
+    formData.append(`tituloImagen${i}`, datos.titulo ?? "");
+    formData.append(`descripcionImagen${i}`, datos.descripcion ?? "");
+    formData.append(`etiquetaImagen${i}`, datos.etiqueta ?? "");
   }
+
+  formData.append("cantidadImagenes", imagenes.length);
   //envio los datos al controlador
   // ajusta segun la estructura de carpetas
   const base = window.location.origin;

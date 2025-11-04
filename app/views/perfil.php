@@ -48,8 +48,9 @@ $isOwner = (isset($_SESSION['usuario']['id']) && (int)$_SESSION['usuario']['id']
 $sqlUser = "
     SELECT
     u.idUsuario, u.arrobaUsuario, u.apodoUsuario, u.nombreUsuario,
-    u.apellidoUsuario, u.descripcionUsuario, u.contactoUsuario,
+    u.apellidoUsuario,
     u.correoUsuario,
+    u.descripcionUsuario,
     fp.imagenPerfil
     FROM usuario u
     LEFT JOIN fotosdeperfil fp ON fp.idFotoPerfil = u.idFotoPerfilUsuario
@@ -134,6 +135,45 @@ if (!$isOwner && isset($_SESSION['usuario']['id'])) {
         }
         $stmtStatus->close();
     }
+}
+
+// === Me gusta del usuario (álbums e imágenes) ===
+// Álbums que el usuario ha dado like
+$likedAlbums = [];
+$sqlLikedAlbums = "
+    SELECT a.idAlbum, a.tituloAlbum AS nombreAlbum, a.urlPortadaAlbum, a.fechaCreacionAlbum
+    FROM megusta_album ma
+    JOIN album a ON a.idAlbum = ma.idAlbumLike
+    WHERE ma.idUsuarioLike = ?
+    ORDER BY ma.fechaLike DESC
+";
+$stmtLikedAlbums = $conexion->prepare($sqlLikedAlbums);
+if ($stmtLikedAlbums) {
+    $stmtLikedAlbums->bind_param("i", $perfilId);
+    $stmtLikedAlbums->execute();
+    $resLikedAlbums = $stmtLikedAlbums->get_result();
+    $likedAlbums = $resLikedAlbums ? $resLikedAlbums->fetch_all(MYSQLI_ASSOC) : [];
+    $stmtLikedAlbums->close();
+}
+
+// Imágenes que el usuario ha dado like
+$likedImages = [];
+$sqlLikedImages = "
+    SELECT i.idImagen, i.tituloImagen, i.descripcionImagen, i.urlImagen, i.idAlbumImagen,
+           a.tituloAlbum AS nombreAlbum
+    FROM megusta m
+    JOIN imagen i ON i.idImagen = m.idImagenLike
+    JOIN album a ON a.idAlbum = i.idAlbumImagen
+    WHERE m.idUsuarioLike = ?
+    ORDER BY m.fechaLike DESC
+";
+$stmtLikedImages = $conexion->prepare($sqlLikedImages);
+if ($stmtLikedImages) {
+    $stmtLikedImages->bind_param("i", $perfilId);
+    $stmtLikedImages->execute();
+    $resLikedImages = $stmtLikedImages->get_result();
+    $likedImages = $resLikedImages ? $resLikedImages->fetch_all(MYSQLI_ASSOC) : [];
+    $stmtLikedImages->close();
 }
 
 
@@ -400,12 +440,16 @@ $conexion->close();
 
             <div class="box d-flex flex-column justify-content-center">
                 <div class="apodo"><?= e($userData['apodoUsuario'] ?: $userData['nombreUsuario']) ?></div>
-                <div class="arroba">@<?= e($userData['arrobaUsuario'] ?: $userData['apodoUsuario']) ?></div>
+                <div class="arroba"><?= '@' . e(ltrim(($userData['arrobaUsuario'] ?: $userData['apodoUsuario']), '@')) ?></div>
             </div>
 
             <div class="box">
                 <p class="descripcion mb-0" style="white-space: pre-line;">
-                    <?= htmlspecialchars(str_replace(["\\r\\n", "\\n", "\\r"], "\n", $userData['descripcionUsuario'] ?: 'Sin descripción.')) ?>
+                    <?php
+                        $desc = $userData['descripcionUsuario'] ?? '';
+                        $desc = $desc !== '' ? $desc : 'Sin descripción.';
+                        echo htmlspecialchars(str_replace(["\r\n", "\n", "\r"], "\n", $desc));
+                    ?>
                 </p>
 
             </div>
@@ -502,6 +546,14 @@ $conexion->close();
                                     <small class="text-muted">
                                         <?= (int)$album['total_imagenes'] ?> imágenes • <?= $albumDate->format('d/m/Y') ?>
                                     </small>
+                                    <div class="d-flex gap-1 align-items-center mt-1">
+                                        <img src="../../public/assets/images/like.png"
+                                             alt="Me gusta"
+                                             class="img-fluid btn-like-galeria"
+                                             data-idalbum="<?= (int)$album['idAlbum'] ?>"
+                                             style="max-height: 25px; cursor: pointer;">
+                                        <span id="likes-count-album-<?= (int)$album['idAlbum'] ?>" class="text-muted small align-self-center">0</span>
+                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -512,8 +564,72 @@ $conexion->close();
             </div>
 
             <div class="tab-pane fade" id="likes-tab">
-                <h3 class="mb-4">Imágenes que le gustan</h3>
-                <p class="text-muted text-center py-5">Esta sección aún está en construcción.</p>
+                <!-- Álbumes con Me Gusta -->
+                <h3 class="mb-3">Álbumes que le gustan (<?= count($likedAlbums) ?>)</h3>
+                <?php if (empty($likedAlbums)): ?>
+                    <p class="text-muted">No hay álbumes con “Me gusta”.</p>
+                <?php else: ?>
+                    <div class="album-grid mb-4">
+                        <?php foreach ($likedAlbums as $album): ?>
+                            <?php
+                                $coverUrl = $album['urlPortadaAlbum']
+                                    ? '../../public/uploads/portadas/' . e($album['urlPortadaAlbum'])
+                                    : '../../public/assets/images/imagen.png';
+                                $albumDate = new DateTime($album['fechaCreacionAlbum']);
+                            ?>
+                            <div class="album-card" data-id="<?= (int)$album['idAlbum'] ?>" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum">
+                                <div class="album-img-wrapper">
+                                    <img src="<?= $coverUrl ?>" alt="Portada de álbum" class="album-img">
+                                </div>
+                                <div class="album-info">
+                                    <h5><?= e($album['nombreAlbum']) ?></h5>
+                                    <small class="text-muted"><?= $albumDate->format('d/m/Y') ?></small>
+                                    <div class="d-flex gap-1 align-items-center mt-1">
+                                        <img src="../../public/assets/images/like.png"
+                                             alt="Me gusta"
+                                             class="img-fluid btn-like-galeria"
+                                             data-idalbum="<?= (int)$album['idAlbum'] ?>"
+                                             style="max-height: 25px; cursor: pointer;">
+                                        <span id="likes-count-album-<?= (int)$album['idAlbum'] ?>" class="text-muted small align-self-center">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Imágenes con Me Gusta -->
+                <h3 class="mb-3">Imágenes que le gustan (<?= count($likedImages) ?>)</h3>
+                <?php if (empty($likedImages)): ?>
+                    <p class="text-muted">No hay imágenes con “Me gusta”.</p>
+                <?php else: ?>
+                    <div class="album-grid">
+                        <?php foreach ($likedImages as $img): ?>
+                            <?php
+                                $imgUrl = $img['urlImagen']
+                                    ? '../../public/uploads/imagenes/' . e($img['urlImagen'])
+                                    : '../../public/assets/images/imagen.png';
+                            ?>
+                            <div class="album-card" data-id="<?= (int)$img['idAlbumImagen'] ?>" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum" title="<?= e($img['tituloImagen'] ?? '') ?>">
+                                <div class="album-img-wrapper">
+                                    <img src="<?= $imgUrl ?>" alt="Imagen con Me Gusta" class="album-img">
+                                </div>
+                                <div class="album-info">
+                                    <h5><?= e($img['tituloImagen'] ?? 'Sin título') ?></h5>
+                                    <small class="text-muted">Álbum: <?= e($img['nombreAlbum'] ?? '') ?></small>
+                                    <div class="d-flex gap-1 align-items-center mt-1">
+                                        <img src="../../public/assets/images/like.png"
+                                             alt="Me gusta imagen"
+                                             class="img-fluid btn-like-imagen-perfil"
+                                             data-idimagen="<?= (int)$img['idImagen'] ?>"
+                                             style="max-height: 25px; cursor: pointer;">
+                                        <span id="likes-count-image-<?= (int)$img['idImagen'] ?>" class="text-muted small align-self-center">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

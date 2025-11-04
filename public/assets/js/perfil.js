@@ -58,12 +58,14 @@ document.addEventListener("DOMContentLoaded", () => {
         modalBodyIzq.innerHTML = data.izquierda;
         modalBodyDer.innerHTML = data.derecha;
 
-        // Comentarios iniciales
+        // Comentarios y likes iniciales en modal
         setTimeout(() => {
           const btnEnviar = document.getElementById("btnEnviarComentario");
           const inputComentario = document.getElementById("inputComentario");
           const carrusel = document.getElementById("carouselAlbum");
           const listaComentarios = document.getElementById("listaComentarios");
+          const btnLikeModal = document.getElementById("btn-like-imagen");
+          const countModal = document.getElementById("likes-count-display");
 
           function mostrarComentarios(idImg) {
             const comentarios = data.comentarios[idImg] || [];
@@ -81,7 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
               .join("");
           }
 
-          function actualizarInfoImagen() {
+          async function actualizarInfoImagen() {
             const activo = carrusel.querySelector(".carousel-item.active");
             const titulo = activo?.dataset.titulo || "";
             const descripcion = activo?.dataset.descripcion || "";
@@ -90,6 +92,23 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("descripcionImagen").textContent = descripcion;
             btnEnviar.setAttribute("data-idimagen", idImagen);
             mostrarComentarios(idImagen);
+
+            // Actualizar estado y conteo de like del modal para la imagen activa
+            if (btnLikeModal && idImagen) {
+              btnLikeModal.dataset.idimagen = idImagen;
+              try {
+                const resp = await fetch(`../controllers/obtenerLikes.php?idImagen=${encodeURIComponent(idImagen)}`);
+                const likeData = await resp.json();
+                if (resp.ok && likeData.totalLikes !== undefined) {
+                  if (countModal) countModal.textContent = likeData.totalLikes;
+                  btnLikeModal.src = likeData.likedByUser
+                    ? "../../public/assets/images/likelleno.png"
+                    : "../../public/assets/images/like.png";
+                }
+              } catch (err) {
+                console.warn("No se pudieron cargar likes en modal para imagen", idImagen, err);
+              }
+            }
           }
 
           if (btnEnviar && inputComentario) {
@@ -139,5 +158,129 @@ document.addEventListener("DOMContentLoaded", () => {
         modalBodyDer.innerHTML = "";
       }
     });
+  });
+
+  // ===== Inicializar conteos y estado del corazón en tarjetas (álbumes) =====
+  document.querySelectorAll(".btn-like-galeria").forEach(async (el) => {
+    const idAlbum = el.dataset.idalbum;
+    if (!idAlbum) return;
+    try {
+      const resp = await fetch(`../controllers/obtenerLikes.php?idAlbum=${encodeURIComponent(idAlbum)}`);
+      const data = await resp.json();
+      if (resp.ok && data.totalLikes !== undefined) {
+        // Actualiza el contador adyacente para evitar colisiones de IDs en distintas secciones
+        const contador = el.nextElementSibling || el.parentElement?.querySelector(`span[id="likes-count-album-${idAlbum}"]`);
+        if (contador) contador.textContent = data.totalLikes;
+        el.src = data.likedByUser
+          ? "../../public/assets/images/likelleno.png"
+          : "../../public/assets/images/like.png";
+      }
+    } catch (err) {
+      console.warn("No se pudieron cargar likes iniciales para álbum", idAlbum, err);
+    }
+  });
+
+  // ===== Inicializar conteos y estado del corazón en tarjetas (imágenes) =====
+  document.querySelectorAll(".btn-like-imagen-perfil").forEach(async (el) => {
+    const idImagen = el.dataset.idimagen;
+    if (!idImagen) return;
+    try {
+      const resp = await fetch(`../controllers/obtenerLikes.php?idImagen=${encodeURIComponent(idImagen)}`);
+      const data = await resp.json();
+      if (resp.ok && data.totalLikes !== undefined) {
+        const contador = document.getElementById(`likes-count-image-${idImagen}`);
+        if (contador) contador.textContent = data.totalLikes;
+        el.src = data.likedByUser
+          ? "../../public/assets/images/likelleno.png"
+          : "../../public/assets/images/like.png";
+      }
+    } catch (err) {
+      console.warn("No se pudieron cargar likes iniciales para imagen", idImagen, err);
+    }
+  });
+
+  // ===== Manejo de clics de like (delegado) para evitar abrir el modal =====
+  document.addEventListener("click", async (e) => {
+    // Like del modal de imagen
+    const btnLikeModal = e.target.closest("#btn-like-imagen");
+    if (btnLikeModal) {
+      e.preventDefault();
+      e.stopPropagation();
+      const idImagen = btnLikeModal.dataset.idimagen;
+      if (!idImagen) return;
+      try {
+        const resp = await fetch("megusta.php", {
+          method: "POST",
+          body: new URLSearchParams({ idImagen })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.totalLikes !== undefined) {
+          const contadorModal = document.getElementById("likes-count-display");
+          if (contadorModal) contadorModal.textContent = data.totalLikes;
+          btnLikeModal.src = data.accion === "like"
+            ? "../../public/assets/images/likelleno.png"
+            : "../../public/assets/images/like.png";
+        } else {
+          console.error("Error al registrar el like de imagen (modal):", data.error || "Respuesta inesperada");
+        }
+      } catch (err) {
+        console.error("Error en el fetch de like de imagen (modal):", err);
+      }
+      return;
+    }
+
+    const btnAlbum = e.target.closest(".btn-like-galeria");
+    if (btnAlbum) {
+      e.preventDefault();
+      e.stopPropagation();
+      const idAlbum = btnAlbum.dataset.idalbum;
+      if (!idAlbum) return;
+      try {
+        const resp = await fetch("megusta.php", {
+          method: "POST",
+          body: new URLSearchParams({ idAlbum })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.totalLikes !== undefined) {
+          const contador = btnAlbum.nextElementSibling || btnAlbum.parentElement?.querySelector(`span[id="likes-count-album-${idAlbum}"]`);
+          if (contador) contador.textContent = data.totalLikes;
+          btnAlbum.src = data.accion === "like"
+            ? "../../public/assets/images/likelleno.png"
+            : "../../public/assets/images/like.png";
+        } else {
+          console.error("Error al registrar el like de álbum:", data.error || "Respuesta inesperada");
+        }
+      } catch (err) {
+        console.error("Error en el fetch de like de álbum:", err);
+      }
+      return;
+    }
+
+    const btnImg = e.target.closest(".btn-like-imagen-perfil");
+    if (btnImg) {
+      e.preventDefault();
+      e.stopPropagation();
+      const idImagen = btnImg.dataset.idimagen;
+      if (!idImagen) return;
+      try {
+        const resp = await fetch("megusta.php", {
+          method: "POST",
+          body: new URLSearchParams({ idImagen })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.totalLikes !== undefined) {
+          const contador = document.getElementById(`likes-count-image-${idImagen}`);
+          if (contador) contador.textContent = data.totalLikes;
+          btnImg.src = data.accion === "like"
+            ? "../../public/assets/images/likelleno.png"
+            : "../../public/assets/images/like.png";
+        } else {
+          console.error("Error al registrar el like de imagen:", data.error || "Respuesta inesperada");
+        }
+      } catch (err) {
+        console.error("Error en el fetch de like de imagen:", err);
+      }
+      return;
+    }
   });
 });

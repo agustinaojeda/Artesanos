@@ -87,7 +87,12 @@ if (!empty($imagenes)) {
         $htmlIzquierda .= '<div class="carousel-item ' . $active . '" 
               data-idimagen="' . $img['idImagen'] . '"
               data-titulo="' . htmlspecialchars($img['tituloImagen'] ?? '') . '" 
-              data-descripcion="' . htmlspecialchars($img['descripcionImagen'] ?? '') . '">
+              data-descripcion="' . htmlspecialchars($img['descripcionImagen'] ?? '') . '" 
+              data-fechaunix="' . (
+                preg_match('/\d{2}:\d{2}/', (string)($img['fechaImagen'] ?? '')) 
+                  ? (strtotime($img['fechaImagen']) * 1000) 
+                  : (strtotime($album->fechaCreacion) * 1000)
+              ) . '">
             <div style="width: 100%; max-width: 500px; aspect-ratio: 1 / 1; overflow: hidden; margin: auto;">
                 <img src="../../public/uploads/imagenes/' . htmlspecialchars($img['urlImagen'] ?? 'sin-imagen.png') . '" 
                      class="w-100 h-100" style="object-fit: contain;">
@@ -165,7 +170,7 @@ $htmlIzquierda .= '<div id="listaComentarios" class="mt-3"></div>';
 $htmlDerecha = '<div class="text-center mt-5">
   <img src="' . obtenerAvatar($usuario['idUsuario']) . '" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
   <h5>' . htmlspecialchars($usuario['apodo'] ?? 'Sin apodo') . '</h5>
-  <p class="text-muted">@' . htmlspecialchars($usuario['arroba'] ?? '') . '</p>
+  <p class="text-muted">@' . htmlspecialchars(ltrim($usuario['arroba'] ?? '', '@')) . '</p>
   <div class="d-flex justify-content-center gap-3 mt-2">
     <div><strong>' . (int)$cantAlbumes . '</strong><br><small>Álbumes</small></div>
     <div><strong>' . (int)$cantSeguidores . '</strong><br><small>Seguidores</small></div>
@@ -173,15 +178,19 @@ $htmlDerecha = '<div class="text-center mt-5">
 </div>';
 
 // Respuesta final
-date_default_timezone_set('America/Argentina/Buenos_Aires');
+date_default_timezone_set('America/Lima');
 
 echo json_encode([
     'tituloAlbum' => $album->tituloAlbum,
     'fotoPerfil' => obtenerAvatar($usuario['idUsuario']),
     'fecha' => date('c', strtotime($album->fechaCreacion)),
+    'fechaUnix' => strtotime($album->fechaCreacion) * 1000,
+    // Eliminado nowUnix y fechaRelativa: el cliente usa Date.now()
     'apodo' => $usuario['apodo'] ?? 'Usuario',
-    'usuario' => $usuario['arroba'] ?? '',
+    'usuario' => ltrim($usuario['arroba'] ?? '', '@'),
     'idUsuario' => $usuario['idUsuario'],
+    'cantAlbumes' => (int)$cantAlbumes,
+    'cantSeguidores' => (int)$cantSeguidores,
     'izquierda' => $htmlIzquierda,
     'derecha' => $htmlDerecha,
     'comentarios' => $comentariosPorImagen

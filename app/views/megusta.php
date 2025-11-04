@@ -1,6 +1,7 @@
 <?php
 // Asegúrate de que tu modelo tenga una función llamada toggleLike($idImagen, $idUsuario)
 include '../models/imagenModelo.php';
+include '../models/albumModelo.php';
 session_start();
 
 header('Content-Type: application/json');
@@ -19,19 +20,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $idUsuario = (int)$_SESSION['usuario']['id'];
 $idImagen = filter_input(INPUT_POST, 'idImagen', FILTER_VALIDATE_INT);
+$idAlbum  = filter_input(INPUT_POST, 'idAlbum', FILTER_VALIDATE_INT);
 
-if (!$idImagen) {
+if (!$idImagen && !$idAlbum) {
     http_response_code(400);
-    echo json_encode(['error' => 'ID de imagen inválido']);
+    echo json_encode(['error' => 'ID inválido']);
     exit;
 }
 
 try {
-    $modeloImagen = new ImagenModelo(); // Ajusta si tu clase tiene otro nombre
-    
-    // Asume que toggleLike() devuelve un array con:
-    // ['accion' => 'like'/'dislike', 'totalLikes' => 5]
-    $resultado = $modeloImagen->toggleLike($idImagen, $idUsuario);
+    if ($idImagen) {
+        $modeloImagen = new ImagenModelo();
+        $resultado = $modeloImagen->toggleLike($idImagen, $idUsuario);
+    } else {
+        $modeloAlbum = new AlbumModelo();
+        $resultado = $modeloAlbum->toggleLikeAlbum($idAlbum, $idUsuario);
+    }
 
     echo json_encode($resultado);
 

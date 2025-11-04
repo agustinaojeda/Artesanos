@@ -200,7 +200,7 @@ class AlbumModelo
 
         $idUsuario = (int)$idUsuario;
 
-        $consulta = "SELECT COUNT(*) AS total FROM seguimiento WHERE idSeguido = $idUsuario AND estadoSeguimiento = 'seguido'";
+        $consulta = "SELECT COUNT(*) AS total FROM seguimiento WHERE idSeguido = $idUsuario AND estadoSeguimiento = 'activo'";
 
         $resultado = mysqli_query($conexion, $consulta);
 
@@ -208,6 +208,54 @@ class AlbumModelo
         $total = 0;
         if ($nfilas > 0) {
             $fila = mysqli_fetch_assoc($resultado);
+            $total = (int)$fila['total'];
+        }
+
+        cerrarConexion($conexion);
+        return $total;
+    }
+
+    public function toggleLikeAlbum(int $idAlbum, int $idUsuario): array
+    {
+        $conexion = abrirConexion();
+
+        $idAlbum = (int)$idAlbum;
+        $idUsuario = (int)$idUsuario;
+
+        $consultaVerificar = "SELECT idLikeAlbum FROM megusta_album WHERE idAlbumLike = $idAlbum AND idUsuarioLike = $idUsuario;";
+        $resultadoVerificar = mysqli_query($conexion, $consultaVerificar);
+
+        if (mysqli_num_rows($resultadoVerificar) > 0) {
+            $consultaAccion = "DELETE FROM megusta_album WHERE idAlbumLike = $idAlbum AND idUsuarioLike = $idUsuario;";
+            $accion = 'dislike';
+        } else {
+            $fecha = date("Y-m-d H:i:s");
+            $consultaAccion = "INSERT INTO megusta_album (idAlbumLike, idUsuarioLike, fechaLike) VALUES ($idAlbum, $idUsuario, '$fecha');";
+            $accion = 'like';
+        }
+
+        $resultadoAccion = mysqli_query($conexion, $consultaAccion);
+        if (!$resultadoAccion) {
+            cerrarConexion($conexion);
+            throw new Exception("Error al procesar el like de álbum en la BD: " . mysqli_error($conexion));
+        }
+
+        $totalLikes = $this->contarLikesAlbum($idAlbum);
+
+        cerrarConexion($conexion);
+        return ['accion' => $accion, 'totalLikes' => $totalLikes];
+    }
+
+    public function contarLikesAlbum(int $idAlbum): int
+    {
+        $conexion = abrirConexion();
+        $idAlbum = (int)$idAlbum;
+
+        $consulta = "SELECT COUNT(*) as total FROM megusta_album WHERE idAlbumLike = $idAlbum;";
+        $resultado = mysqli_query($conexion, $consulta);
+
+        $total = 0;
+        if ($resultado && $fila = mysqli_fetch_assoc($resultado)) {
             $total = (int)$fila['total'];
         }
 
