@@ -27,8 +27,7 @@ $usuarioId = (int)$_SESSION['usuario']['id'];
 // Obtener datos actuales del usuario
 $sql = "
     SELECT u.idUsuario, u.nombreUsuario, u.apellidoUsuario, u.apodoUsuario, u.arrobaUsuario,
-       u.descripcionUsuario, u.contactoUsuario, u.correoUsuario, u.privacidadUsuario, 
-       u.idFotoPerfilUsuario, fp.imagenPerfil AS avatarActual
+       u.correoUsuario, u.idFotoPerfilUsuario, fp.imagenPerfil AS avatarActual
 
     FROM usuario u
     LEFT JOIN fotosdeperfil fp ON fp.idFotoPerfil = u.idFotoPerfilUsuario
@@ -44,6 +43,10 @@ $stmt->close();
 if (!$userData) {
     die("Usuario no encontrado.");
 }
+
+// Fallbacks si la base aún no tiene estas columnas
+$userData['descripcionUsuario'] = $userData['descripcionUsuario'] ?? '';
+$userData['privacidadUsuario'] = $userData['privacidadUsuario'] ?? 'publico';
 
 // determinar url del avatar (para mostrar)
 if (!empty($userData['avatarActual'])) {

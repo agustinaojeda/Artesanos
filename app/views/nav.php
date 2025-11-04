@@ -173,6 +173,7 @@ setInterval(actualizarNotificaciones, 10000);
 //  Cargar notificaciones al abrir el modal
 document.addEventListener("DOMContentLoaded", () => {
   const modal = document.getElementById('modalNotificaciones');
+  if (!modal) return;
   modal.addEventListener('show.bs.modal', () => {
     fetch('../controllers/listarNotificaciones.php')
       .then(res => res.text())

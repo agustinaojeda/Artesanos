@@ -39,6 +39,11 @@ if ($result->num_rows > 0) {
             case 'rechazo_seguimiento':
                 $icon = '<i class="bi bi-person-dash-fill text-danger fs-5"></i>';
                 break;
+
+            case 'respuesta_seguimiento': // ← para rechazos (coincide con responderSolicitud.php)
+                $icon = '<i class="bi bi-person-dash-fill text-danger fs-5"></i>';
+                break;
+
             case 'album_nuevo':
                 $icon = '<i class="bi bi-images text-success fs-5"></i>';
                 break;

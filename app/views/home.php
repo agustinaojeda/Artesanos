@@ -35,17 +35,18 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
   <div class="container mt-4">
     <div class="row row-cols-2 row-cols-md-4 g-5">
 
-      <?php
-      if (!empty($albumes) && count($albumes) > 0) {
-        foreach ($albumes as $a) {
-          // Si no tenés idImagenPortada en $a, usamos idAlbum como fallback
-          $idImagenPortada = isset($a->idImagenPortada) ? (int)$a->idImagenPortada : (int)$a->idAlbum;
-          $urlPortada = htmlspecialchars($a->urlPortada);
-          $tituloAlbum = htmlspecialchars($a->tituloAlbum);
-          $apodoUsuario = htmlspecialchars($a->apodoUsuario);
-          $arrobaUsuario = htmlspecialchars($a->arrobaUsuario);
+<?php
+  if (!empty($albumes) && count($albumes) > 0) {
+    foreach ($albumes as $a) {
+      // Si necesitas portada de imagen, la sig línea la puedes seguir usando para mostrar la imagen,
+      // pero el like del Home será por álbum, no por imagen.
+      $idImagenPortada = isset($a->idImagenPortada) ? (int)$a->idImagenPortada : (int)$a->idAlbum;
+      $urlPortada = htmlspecialchars($a->urlPortada);
+      $tituloAlbum = htmlspecialchars($a->tituloAlbum);
+      $apodoUsuario = htmlspecialchars($a->apodoUsuario);
+      $arrobaUsuario = htmlspecialchars(ltrim($a->arrobaUsuario, '@'));
 
-          echo '<div class="col album-item">
+      echo '<div class="col album-item">
               <a href="#" class="abrir-modal-album" data-id="' . (int)$a->idAlbum . '" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum" style="text-decoration: none; color: inherit;">
                 <div class="card-body">
                   <img class="card-img-top" style="border-radius: 10px; height: 200px; object-fit: cover;" src="../../public/uploads/portadas/' . $urlPortada . '"/>
@@ -55,6 +56,19 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
                   <p class="card-text mb-0">' . $apodoUsuario . ' - @' . $arrobaUsuario . '</p>
                 </div>
               </a>
+              <div class="d-flex gap-1 align-items-center mt-1">
+                <img src="../../public/assets/images/like.png"
+                     alt="Me gusta"
+                     class="img-fluid btn-like-galeria"
+                     data-idalbum="' . (int)$a->idAlbum . '"
+                     style="max-height: 25px; cursor: pointer;">
+                <span id="likes-count-album-' . (int)$a->idAlbum . '" class="text-muted small align-self-center">0</span>
+
+                <img src="../../public/assets/images/comentario.png"
+                     alt="Comentario"
+                     class="img-fluid"
+                     style="max-height: 23px; cursor: pointer;">
+              </div>
             </div>';
         }
       } else {
@@ -168,8 +182,8 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
             <div class="row">
               <div class="col-lg-3"></div>
               <div class="col-lg-4 col-12">
-                <label for="inputImagenes" class="imagenParaSubir"><img src="../../public/assets/images/agregarImagen.png" alt="Subir portada"></label>
-                <input type="file" name="inputImagenes" id="inputImagenes" accept="image/*" multiple>
+                <label for="inputImagenes" class="imagenParaSubir"><img src="../../public/assets/images/agregarImagen.png" alt="Subir imagen"></label>
+                <input type="file" name="inputImagenes" id="inputImagenes" accept="image/*">
 
                 <div class="invalid-feedback">Sube una imagen. El máximo son 20.</div>
               </div>
@@ -187,6 +201,8 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
               <button id="btnAnteriorImagen" type="button" class="btn btn-outline-secondary me-2">Anterior</button>
 
               <button id="btnSiguienteImagen" type="button" class="btn btn-secondary">Siguiente</button>
+
+              <button id="btnAgregarOtra" type="button" class="btn btn-outline-primary ms-2">Agregar otra imagen</button>
 
               <button id="btnCrear" class="mt-5">Crear álbum</button>
 
