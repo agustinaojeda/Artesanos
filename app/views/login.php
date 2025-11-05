@@ -19,6 +19,14 @@
       unset($_SESSION['serverMessageTypeLogin']);
       ?>
     <?php endif; ?>
+    <?php if (isset($_SESSION['mensaje_exito'])): ?>
+            <div style="color: green; border: 1px solid green; padding: 10px; margin-bottom: 15px; border-radius: 5px; text-align: center;">
+                <?php 
+                echo $_SESSION['mensaje_exito']; 
+                unset($_SESSION['mensaje_exito']); // Elimina el mensaje para que no se muestre al recargar
+                ?>
+            </div>
+        <?php endif; ?>
     <form action="home.php" method="POST" id="loginForm" novalidate>
       <input type="hidden" name="form_action" value="login">
       <div class="form-group mb-3">

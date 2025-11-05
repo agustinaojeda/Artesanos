@@ -100,16 +100,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && ($_POST['form_action'] ?? '') === '
 
                 if ($insert->execute()) {
                     // Registro exitoso : redirigir al home
-                    $_SESSION['usuario'] = [
-                        'nombre' => $nombre,
-                        'apellido' => $apellido,
-                        'arroba' => $usuario,
-                        'apodo' => $apodo,
-                        'correo' => $email
-                    ];
+                    $_SESSION['mensaje_exito'] = "¡Registro completado con éxito! Ahora puedes iniciar sesión.";
                     $insert->close();
                     cerrarConexion($conexion);
-                    header("Location: home.php");
+                    $_SESSION['mostrarLogin'] = true; // Mostrar la vista de login
+                    header("Location: home.php#registroBl");
                     exit;
                 } else {
                     $_SESSION['serverMessage'] = 'Error al registrar: ' . htmlspecialchars($insert->error);
