@@ -159,12 +159,12 @@ input::placeholder {
 
 .password-wrapper .toggle-password {
   position: absolute;
-  right: 12px;           /* Separación del borde derecho */
-  top: 50%;              /* Punto medio del contenedor */
-  transform: translateY(-180%);  /* Centra verticalmente */
+  right: 12px;          
+  top: 50%;            
+  transform: translateY(-180%);  
   cursor: pointer;
   z-index: 5;
-  height: 1em;           /* Tamaño relativo al texto */
+  height: 1em;          
   width: 1em;
   display: flex;
   align-items: center;
@@ -172,12 +172,10 @@ input::placeholder {
   pointer-events: all;
 }
 
-/* Deja espacio dentro del input para el ojito + icono validación */
 .password-wrapper input.form-control {
   padding-right: 2.75rem;
 }
 
-/* Mueve los íconos de validación de Bootstrap a la izquierda del ojito */
 .was-validated .form-control:valid,
 .form-control.is-valid {
   background-position: right 2.5rem center !important;
@@ -189,5 +187,4 @@ input::placeholder {
 .password-wrapper .toggle-password svg {
   vertical-align: middle;
   position: relative;
-  top: 1px; /* ajusta fino: usa 0, 1 o -1 según tu caso */
 }
