@@ -730,15 +730,26 @@ if (btnCrearEl) btnCrearEl.addEventListener("click", function (e) {
   }
 ); 
 
-function mostrarRegistro() {
-  // Oculta el login
-  document.getElementById('bloqueLogin').style.display = 'none';
-
-  // Muestra el registro
-  document.getElementById('bloqueRegistro').style.display = 'block';
+function limpiarMensajesTemporales(formId) {
+    // Busca y elimina el div.alert dentro del bloque del formulario
+    const bloque = document.getElementById(formId);
+    if (bloque) {
+        const alertDiv = bloque.querySelector('.alert');
+        if (alertDiv) {
+            alertDiv.remove();
+        }
+    }
 }
-function mostrarLogin() {
-  document.getElementById('bloqueLogin').style.display = 'block';
+    function mostrarRegistro() {
+      document.getElementById('bloqueLogin').style.display = 'none';
+      document.getElementById('bloqueRegistro').style.display = 'block';
 
-  document.getElementById('bloqueRegistro').style.display = 'none';
-}
+      limpiarMensajesTemporales('bloqueLogin');
+    }
+
+    function mostrarLogin() {
+      document.getElementById('bloqueLogin').style.display = 'block';
+      document.getElementById('bloqueRegistro').style.display = 'none';
+
+      limpiarMensajesTemporales('bloqueRegistro');
+    }

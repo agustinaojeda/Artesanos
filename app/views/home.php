@@ -1,8 +1,11 @@
 <?php
-include '../controllers/albumControlador.php';
 if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
+
+include '../controllers/albumControlador.php';
+include '../controllers/loginControlador.php';
+include '../controllers/registroControlador.php';
 
 // home.php (Línea 7 - CORREGIDO)
 $idUsuario = isset($_SESSION['usuario']['id']) ? (int)$_SESSION['usuario']['id'] : 0;
@@ -54,23 +57,19 @@ $mostrarLogin = isset($_SESSION['mostrarLogin']) && $_SESSION['mostrarLogin'] ==
                   <img class="card-img-top" style="border-radius: 10px; height: 200px; object-fit: cover;" src="../../public/uploads/portadas/' . $urlPortada . '"/>
                   <div class="d-flex justify-content-between align-items-center mt-2">
                     <h5 class="card-title mb-0">' . $tituloAlbum . '</h5>
+                      <div class="d-flex align-items-center gap-1" style="margin-top: 8px;">
+                        <img src="../../public/assets/images/like.png"
+                          alt="Me gusta"
+                          class="img-fluid btn-like-galeria"
+                          data-idalbum="' . (int)$a->idAlbum . '"
+                        style="max-height: 25px; cursor: pointer;">
+                        <span id="likes-count-album-' . (int)$a->idAlbum . '" class="text-muted small">0</span>
+                      </div>
                   </div>
                   <p class="card-text mb-0">' . $apodoUsuario . ' - @' . $arrobaUsuario . '</p>
                 </div>
               </a>
-              <div class="d-flex gap-1 align-items-center mt-1">
-                <img src="../../public/assets/images/like.png"
-                     alt="Me gusta"
-                     class="img-fluid btn-like-galeria"
-                     data-idalbum="' . (int)$a->idAlbum . '"
-                     style="max-height: 25px; cursor: pointer;">
-                <span id="likes-count-album-' . (int)$a->idAlbum . '" class="text-muted small align-self-center">0</span>
-
-                <img src="../../public/assets/images/comentario.png"
-                     alt="Comentario"
-                     class="img-fluid"
-                     style="max-height: 23px; cursor: pointer;">
-              </div>
+              
             </div>';
         }
       } else {
@@ -120,15 +119,23 @@ $mostrarLogin = isset($_SESSION['mostrarLogin']) && $_SESSION['mostrarLogin'] ==
 
   <?php if ($idUsuario == 0): ?>
     <div id="registroBl">
-      
+
       <div id="bloqueRegistro" style="<?php echo $mostrarLogin ? 'display:none;' : 'display:block;'; ?>">
-        <?php include 'registro.php'; ?>
+        <?php
+        include 'registro.php';
+        ?>
       </div>
       <div id="bloqueLogin" style="<?php echo $mostrarLogin ? 'display:block;' : 'display:none;'; ?>">
-        <?php include 'login.php'; ?>
+        <?php
+        include 'login.php';
+        ?>
       </div>
     </div>
-    <?php unset($_SESSION['mostrarLogin']); ?>
+    <?php if (isset($_SESSION['mostrarLogin'])) {
+      unset($_SESSION['mostrarLogin']);
+    } ?>
+
+
 
   <?php else: ?>
     <!-- boton para crear album -->

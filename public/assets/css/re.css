@@ -1,11 +1,8 @@
-
-
 .register-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start; 
-  text-align: center;
   background-color: #fafafa;
   padding: 40px 20px;
   margin-top: 40px; 
@@ -142,38 +139,6 @@ input::placeholder {
 /* Para inputs inválidos */
 .form-control.is-invalid {
   box-shadow: 0 0 0 0.15rem rgba(239, 68, 68, 0.25);
-}
-
-/*Ojito de contraseña*/
-
-.password-wrapper {
-  position: relative;
-  width: 100%;
-}
-
-.password-wrapper .form-control {
-  padding-right: 40px; /* espacio para el icono */
-}
-
-.password-wrapper .toggle-password {
-  position: absolute;
-  top: 50%;
-  right: 12px;
-  transform: translateY(-50%);
-  cursor: pointer;
-  color: #999;
-  font-size: 1.2rem;
-  transition: color 0.2s ease;
-}
-
-.password-wrapper .toggle-password:hover {
-  color: #333;
-}
-
-/* Cuando hay icono de validación (Bootstrap), moverlo un poco a la izquierda */
-.password-wrapper .form-control.is-valid,
-.password-wrapper .form-control.is-invalid {
-  background-position: right 2.2rem center;
 }
 
 /*Olvidaste tu contraseña*/
