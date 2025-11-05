@@ -118,3 +118,19 @@
 #loadMore {
   display: none !important;
 }
+  .logPas {
+  position: relative;
+}
+
+.logPas .toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  z-index: 5;
+}
+
+.logPas input.form-control {
+  padding-right: 2.75rem; 
+}
