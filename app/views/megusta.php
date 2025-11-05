@@ -1,5 +1,4 @@
 <?php
-// Asegúrate de que tu modelo tenga una función llamada toggleLike($idImagen, $idUsuario)
 include '../models/imagenModelo.php';
 include '../models/albumModelo.php';
 session_start();

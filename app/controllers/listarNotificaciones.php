@@ -36,11 +36,15 @@ if ($result->num_rows > 0) {
                 $icon = '<i class="bi bi-person-check-fill text-success fs-5"></i>';
                 break;
 
+            case 'nuevo_seguimiento':
+                $icon = '<i class="bi bi-person-check-fill text-success fs-5"></i>';
+                break;
+
             case 'rechazo_seguimiento':
                 $icon = '<i class="bi bi-person-dash-fill text-danger fs-5"></i>';
                 break;
 
-            case 'respuesta_seguimiento': // ← para rechazos (coincide con responderSolicitud.php)
+            case 'respuesta_seguimiento': //  para rechazos (coincide con responderSolicitud.php)
                 $icon = '<i class="bi bi-person-dash-fill text-danger fs-5"></i>';
                 break;
 
@@ -61,7 +65,7 @@ if ($result->num_rows > 0) {
         $mensajeAMostrar = htmlspecialchars($row['mensaje']);
 
         // Si es respuesta de seguimiento, agregamos enlace al perfil
-        if ($row['tipo'] === 'aceptar_seguimiento') {
+        if ($row['tipo'] === 'aceptar_seguimiento' || $row['tipo'] === 'solicitud_seguir') {
             $perfilUrl = "perfil.php?id=" . $row['idUsuarioAccion'];
             $mensajeAMostrar .= " <a href='$perfilUrl' class='text-decoration-none'>Ver perfil</a>";
            
@@ -80,7 +84,7 @@ if ($result->num_rows > 0) {
                 <div class="text-muted small mt-1">' . date("d/m/Y H:i", strtotime($row['fecha'])) . '</div>
             </div>';
 
-        // 🔹 Si es una solicitud, muestra botones
+        // Si es una solicitud, muestra botones
         if ($row['tipo'] === 'solicitud_seguir') {
             echo '
             <div class="ms-auto">
@@ -94,13 +98,13 @@ if ($result->num_rows > 0) {
 
     echo '</div>';
 
-    // ✅ Marcar como leídas
+    // marcar como leídas
     $update = $conexion->prepare("UPDATE notificaciones SET leida = 1 WHERE idUsuarioDestino = ?");
     $update->bind_param("i", $idUsuario);
     $update->execute();
 
 } else {
-    echo '<div class="alert alert-secondary text-center">No tenés notificaciones aún 😊</div>';
+    echo '<div class="alert alert-secondary text-center">¡No tenés notificaciones aún!</div>';
 }
 
 cerrarConexion($conexion);

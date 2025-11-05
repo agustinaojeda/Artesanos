@@ -166,8 +166,8 @@ function actualizarNotificaciones() {
     .catch(err => console.error('Error al actualizar notificaciones:', err));
 }
 
-//  Actualiza el numerito cada 10 segundos
-setInterval(actualizarNotificaciones, 10000);
+//  Actualiza el numerito cada 5 segundos
+setInterval(actualizarNotificaciones, 5000);
 
 
 //  Cargar notificaciones al abrir el modal

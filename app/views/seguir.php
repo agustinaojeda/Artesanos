@@ -12,7 +12,6 @@ if (!$idSeguidor || !$idSeguido) {
     exit;
 }
 
-// ✅ Verificamos si ya existe una relación
 $check = $conexion->prepare("SELECT estadoSeguimiento FROM seguimiento WHERE idSeguidor = ? AND idSeguido = ?");
 $check->bind_param("ii", $idSeguidor, $idSeguido);
 $check->execute();
@@ -25,14 +24,13 @@ if ($result->num_rows > 0) {
     exit;
 }
 
-// ✅ Inserta solicitud pendiente
 $sql = "INSERT INTO seguimiento (idSeguidor, idSeguido, estadoSeguimiento, fechaSeguimiento)
         VALUES (?, ?, 'pendiente', NOW())";
 $stmt = $conexion->prepare($sql);
 $stmt->bind_param("ii", $idSeguidor, $idSeguido);
 $stmt->execute();
 
-// ✅ Notificación al seguido
+// notificación al seguido
 $mensaje = "te ha enviado una solicitud de seguimiento";
 $tipo = "solicitud_seguir";
 
