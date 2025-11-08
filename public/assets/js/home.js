@@ -215,25 +215,58 @@ document.querySelectorAll(".abrir-modal-album").forEach((el) => {
     fetch(`../controllers/detalleAlbum.php?id=${idAlbum}`)
       .then((res) => res.json())
       .then((data) => {
-        console.log(data);
         let fechaRelativa = tiempoRelativo(data.fecha);
+        const urlPerfil = `perfil.php?id=${data.idUsuario}`; // URL del perfil
+        const btnSeguir = document.getElementById("btnSeguir");
+        
+        if (btnSeguir) { //si el usuario esta viendo su propio album oculta el boton de seguir
+            if (typeof idUsuarioLogueado !== 'undefined' && idUsuarioLogueado == data.idUsuario) {
+                btnSeguir.classList.add('d-none');
+            } else {
+                btnSeguir.classList.remove('d-none');
+            }
+            btnSeguir.setAttribute("data-id", data.idUsuario);
+        }
 
-        //datos del usuario
+        // datos del usuario
         document.getElementById("modalDetalleAlbumLabel").innerHTML = `
-        <div class="d-flex flex-column">
-          <div class="d-flex align-items-center gap-2">
-            <h4 class="mb-0"><strong>${data.apodo}</strong></h4>
-            <div class="text-muted fw-light"><small> - @${data.usuario}</small></div>
+          <div class="d-flex flex-column">
+            <a href="${urlPerfil}" class="text-decoration-none text-dark">
+              <div class="d-flex align-items-center gap-2">
+                <h4 class="mb-0"><strong>${data.apodo}</strong></h4>
+                <div class="text-muted fw-light"><small> - @${data.usuario}</small></div>
+              </div>
+            </a>
+            <div class="text-muted mt-1 fw-light" style="font-size: 0.9rem;">${fechaRelativa}</div>
           </div>
-          <div class="text-muted mt-1 fw-light" style="font-size: 0.9rem;">${fechaRelativa}</div>
-        </div>
         `;
 
-        document.getElementById("modalFotoPerfil").src = data.fotoPerfil;
-        document
-          .getElementById("btnSeguir")
-          .setAttribute("data-id", data.idUsuario);
+        //linkea tmb la foto de perfil a la pagina de perfil
+        const fotoPerfilElement = document.getElementById("modalFotoPerfil");
+        if (fotoPerfilElement) {
+          fotoPerfilElement.src = data.fotoPerfil;
 
+          let linkWrapper = fotoPerfilElement.closest("a");
+          if (!linkWrapper || linkWrapper.href !== urlPerfil) {
+            if (linkWrapper) {
+              fotoPerfilElement.parentElement.replaceChild(
+                fotoPerfilElement,
+                linkWrapper
+              );
+            }
+
+            linkWrapper = document.createElement("a");
+            linkWrapper.href = urlPerfil;
+            linkWrapper.classList.add("d-block"); 
+
+            fotoPerfilElement.parentNode.insertBefore(
+              linkWrapper,
+              fotoPerfilElement
+            );
+            linkWrapper.appendChild(fotoPerfilElement);
+          }
+        }
+        
         document.getElementById("detalleAlbumIzquierda").innerHTML =
           data.izquierda;
         document.getElementById("detalleAlbumDerecha").innerHTML = data.derecha;

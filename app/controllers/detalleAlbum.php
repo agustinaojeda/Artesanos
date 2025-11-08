@@ -10,17 +10,17 @@ require_once dirname(__DIR__) . '/models/comentarioModelo.php';
 require_once dirname(__DIR__) . '/models/usuarioHelper.php';
 
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+  session_start();
 }
 
 // Validar ID de álbum
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    echo json_encode([
-        'tituloAlbum' => 'Error',
-        'izquierda' => '<p class="text-danger">ID de álbum no válido.</p>',
-        'derecha' => ''
-    ]);
-    exit;
+  echo json_encode([
+    'tituloAlbum' => 'Error',
+    'izquierda' => '<p class="text-danger">ID de álbum no válido.</p>',
+    'derecha' => ''
+  ]);
+  exit;
 }
 
 $id = (int)$_GET['id'];
@@ -34,9 +34,9 @@ $comentarioModelo = new ComentarioModelo();
 $album = $modeloAlbum->mostrarAlbumId($id);
 
 if (!$album) {
-    http_response_code(404);
-    echo json_encode(['error' => 'Álbum no encontrado o no existe.']);
-    exit;
+  http_response_code(404);
+  echo json_encode(['error' => 'Álbum no encontrado o no existe.']);
+  exit;
 }
 
 // Obtener imágenes
@@ -46,29 +46,29 @@ $imagenes = $imagenModelo->mostrarPorAlbum($album);
 $usuario = $modeloAlbum->obtenerUsuarioDe($album->idAlbum);
 
 if (!$usuario || !isset($usuario['idUsuario'])) {
-    http_response_code(404);
-    echo json_encode(['error' => 'Usuario del álbum no encontrado.']);
-    exit;
+  http_response_code(404);
+  echo json_encode(['error' => 'Usuario del álbum no encontrado.']);
+  exit;
 }
 
 if (isset($_GET['ajax'])) {
-    ob_start();
-    include 'detalleAlbumIzquierda.php'; // muestra las fotos
-    $izquierda = ob_get_clean();
+  ob_start();
+  include 'detalleAlbumIzquierda.php'; // muestra las fotos
+  $izquierda = ob_get_clean();
 
-    ob_start();
-    include 'detalleAlbumDerecha.php'; // muestra descripción, usuario, etc.
-    $derecha = ob_get_clean();
+  ob_start();
+  include 'detalleAlbumDerecha.php'; // muestra descripción, usuario, etc.
+  $derecha = ob_get_clean();
 
-    $response = [
-        'izquierda' => $izquierda,
-        'derecha' => $derecha,
-        'fotoPerfil' => $fotoPerfil ?? '',
-        'nombreUsuario' => $nombreUsuario ?? ''
-    ];
+  $response = [
+    'izquierda' => $izquierda,
+    'derecha' => $derecha,
+    'fotoPerfil' => $fotoPerfil ?? '',
+    'nombreUsuario' => $nombreUsuario ?? ''
+  ];
 
-    echo json_encode($response);
-    exit;
+  echo json_encode($response);
+  exit;
 }
 
 
@@ -82,25 +82,25 @@ $htmlIzquierda = '<h4>' . htmlspecialchars($album->tituloAlbum) . '</h4>
   <div class="carousel-inner">';
 
 if (!empty($imagenes)) {
-    foreach ($imagenes as $i => $img) {
-        $active = $i === 0 ? 'active' : '';
-        $htmlIzquierda .= '<div class="carousel-item ' . $active . '" 
+  foreach ($imagenes as $i => $img) {
+    $active = $i === 0 ? 'active' : '';
+    $htmlIzquierda .= '<div class="carousel-item ' . $active . '" 
               data-idimagen="' . $img['idImagen'] . '"
               data-titulo="' . htmlspecialchars($img['tituloImagen'] ?? '') . '" 
               data-descripcion="' . htmlspecialchars($img['descripcionImagen'] ?? '') . '" 
               data-fechaunix="' . (
-                preg_match('/\d{2}:\d{2}/', (string)($img['fechaImagen'] ?? '')) 
-                  ? (strtotime($img['fechaImagen']) * 1000) 
-                  : (strtotime($album->fechaCreacion) * 1000)
-              ) . '">
+      preg_match('/\d{2}:\d{2}/', (string)($img['fechaImagen'] ?? ''))
+      ? (strtotime($img['fechaImagen']) * 1000)
+      : (strtotime($album->fechaCreacion) * 1000)
+    ) . '">
             <div style="width: 100%; max-width: 500px; aspect-ratio: 1 / 1; overflow: hidden; margin: auto;">
                 <img src="../../public/uploads/imagenes/' . htmlspecialchars($img['urlImagen'] ?? 'sin-imagen.png') . '" 
                      class="w-100 h-100" style="object-fit: contain;">
             </div>
           </div>';
-    }
+  }
 } else {
-    $htmlIzquierda .= '
+  $htmlIzquierda .= '
     <div class="carousel-item active">
         <div class="text-center text-muted py-5">Sin imágenes en este álbum.</div>
     </div>';
@@ -144,15 +144,15 @@ $htmlIzquierda .= '
 // Comentarios
 $comentariosPorImagen = [];
 foreach ($imagenes as $img) {
-    $comentarios = $comentarioModelo->mostrarComentariosDeImagen($img['idImagen']);
-    $comentariosPorImagen[$img['idImagen']] = $comentarios;
+  $comentarios = $comentarioModelo->mostrarComentariosDeImagen($img['idImagen']);
+  $comentariosPorImagen[$img['idImagen']] = $comentarios;
 }
 
 if ($idUsuario == 0) {
-    $htmlIzquierda .= '<p class="text-muted mt-4">Inicia sesión para interactuar con la publicación.</p>';
+  $htmlIzquierda .= '<p class="text-muted mt-4">Inicia sesión para interactuar con la publicación.</p>';
 } else {
-    $avatar = obtenerAvatar($idUsuario);
-    $htmlIzquierda .= '<div id="formularioComentario" class="d-flex align-items-start gap-2 mt-4">
+  $avatar = obtenerAvatar($idUsuario);
+  $htmlIzquierda .= '<div id="formularioComentario" class="d-flex align-items-start gap-2 mt-4">
       <img id="avatarUsuarioComentario" src="' . $avatar . '" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
       <div class="flex-grow-1">
         <div class="d-flex">
@@ -167,11 +167,23 @@ if ($idUsuario == 0) {
 $htmlIzquierda .= '<div id="listaComentarios" class="mt-3"></div>';
 
 // HTML DERECHA: perfil
+$idUsuarioPublicador = $usuario['idUsuario'];
+
+$apodoPublicador = htmlspecialchars($usuario['apodo'] ?? '');
+
+$arrobaPublicador = htmlspecialchars(ltrim($usuario['arroba'] ?? '', '@'));
+
+$urlPerfil = "perfil.php?id={$idUsuarioPublicador}";
+
+
+
 $htmlDerecha = '<div class="text-center mt-5">
-  <img src="' . obtenerAvatar($usuario['idUsuario']) . '" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
-  <h5>' . htmlspecialchars($usuario['apodo'] ?? 'Sin apodo') . '</h5>
-  <p class="text-muted">@' . htmlspecialchars(ltrim($usuario['arroba'] ?? '', '@')) . '</p>
-  <div class="d-flex justify-content-center gap-3 mt-2">
+
+    <a href="' . $urlPerfil . '" class="text-decoration-none text-dark d-inline-block">
+        <img src="' . obtenerAvatar($idUsuarioPublicador) . '" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
+        <h5>' . $apodoPublicador . '</h5>
+    </a>
+    <p class="text-muted">@' . $arrobaPublicador . '</p>  <div class="d-flex justify-content-center gap-3 mt-2">
     <div><strong>' . (int)$cantAlbumes . '</strong><br><small>Álbumes</small></div>
     <div><strong>' . (int)$cantSeguidores . '</strong><br><small>Seguidores</small></div>
   </div>
@@ -179,15 +191,15 @@ $htmlDerecha = '<div class="text-center mt-5">
 
 date_default_timezone_set('America/Argentina/Buenos_Aires');
 echo json_encode([
-    'tituloAlbum' => $album->tituloAlbum,
-    'fotoPerfil' => obtenerAvatar($usuario['idUsuario']),
-    'fecha' => date('c', strtotime($album->fechaCreacion)),
-    'apodo' => $usuario['apodo'] ?? 'Usuario',
-    'usuario' => ltrim($usuario['arroba'] ?? '', '@'),
-    'idUsuario' => $usuario['idUsuario'],
-    'cantAlbumes' => (int)$cantAlbumes,
-    'cantSeguidores' => (int)$cantSeguidores,
-    'izquierda' => $htmlIzquierda,
-    'derecha' => $htmlDerecha,
-    'comentarios' => $comentariosPorImagen
+  'tituloAlbum' => $album->tituloAlbum,
+  'fotoPerfil' => obtenerAvatar($usuario['idUsuario']),
+  'fecha' => date('c', strtotime($album->fechaCreacion)),
+  'apodo' => $usuario['apodo'] ?? 'Usuario',
+  'usuario' => ltrim($usuario['arroba'] ?? '', '@'),
+  'idUsuario' => $usuario['idUsuario'],
+  'cantAlbumes' => (int)$cantAlbumes,
+  'cantSeguidores' => (int)$cantSeguidores,
+  'izquierda' => $htmlIzquierda,
+  'derecha' => $htmlDerecha,
+  'comentarios' => $comentariosPorImagen
 ]);
