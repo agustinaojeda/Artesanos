@@ -6,20 +6,43 @@ document.addEventListener("DOMContentLoaded", () => {
   const fotoPerfil = document.getElementById("modalFotoPerfil");
 
   function tiempoRelativo(fech) {
-    let fecha = new Date(fech);
-    let ahora = new Date();
-    let diffMs = ahora - fecha;
-    let diffSeg = Math.floor(diffMs / 1000);
-    let diffMin = Math.floor(diffSeg / 60);
-    let diffHoras = Math.floor(diffMin / 60);
-    let diffDias = Math.floor(diffHoras / 24);
+  let fecha = new Date(fech);
+  let ahora = new Date();
+  let diffMs = ahora - fecha;
+  let diffSeg = Math.floor(diffMs / 1000);
+  let diffMin = Math.floor(diffSeg / 60);
+  let diffHoras = Math.floor(diffMin / 60);
+  let diffDias = Math.floor(diffHoras / 24);
 
-    if (diffSeg < 60) return `hace ${diffSeg} segundos`;
-    if (diffMin < 60) return `hace ${diffMin} minutos`;
-    if (diffHoras < 24) return `hace ${diffHoras} horas`;
-    if (diffDias === 1) return `ayer`;
-    return `hace ${diffDias} días`;
+  if (diffSeg < 5) return 'justo ahora'; //si lo subio hace menos de 5 segundos muestra justo ahora
+  if (diffSeg < 60) {
+    const unidad = diffSeg === 1 ? 'segundo' : 'segundos';
+    return `hace ${diffSeg} ${unidad}`;
   }
+
+  if (diffMin < 60) {
+    const unidad = diffMin === 1 ? 'minuto' : 'minutos';
+    return `hace ${diffMin} ${unidad}`;
+  }
+
+  if (diffHoras < 24) {
+    const unidad = diffHoras === 1 ? 'hora' : 'horas';
+    return `hace ${diffHoras} ${unidad}`;
+  }
+
+  if (diffDias === 1) return 'ayer';
+  if (diffDias < 30) {
+    const unidad = diffDias === 1 ? 'día' : 'días';
+    return `hace ${diffDias} ${unidad}`;
+  }
+
+//si hace mas de un mes entonces dice la fecha completa
+  return fecha.toLocaleDateString('es-ES', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+}
 
   document.querySelectorAll(".album-card").forEach((card) => {
     card.addEventListener("click", async () => {

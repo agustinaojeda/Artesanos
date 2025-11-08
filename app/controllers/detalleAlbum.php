@@ -177,15 +177,11 @@ $htmlDerecha = '<div class="text-center mt-5">
   </div>
 </div>';
 
-// Respuesta final
-date_default_timezone_set('America/Lima');
-
+date_default_timezone_set('America/Argentina/Buenos_Aires');
 echo json_encode([
     'tituloAlbum' => $album->tituloAlbum,
     'fotoPerfil' => obtenerAvatar($usuario['idUsuario']),
     'fecha' => date('c', strtotime($album->fechaCreacion)),
-    'fechaUnix' => strtotime($album->fechaCreacion) * 1000,
-    // Eliminado nowUnix y fechaRelativa: el cliente usa Date.now()
     'apodo' => $usuario['apodo'] ?? 'Usuario',
     'usuario' => ltrim($usuario['arroba'] ?? '', '@'),
     'idUsuario' => $usuario['idUsuario'],
