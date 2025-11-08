@@ -31,9 +31,6 @@ try {
     if ($idImagen) {
         $modeloImagen = new ImagenModelo();
         $resultado = $modeloImagen->toggleLike($idImagen, $idUsuario);
-    } else {
-        $modeloAlbum = new AlbumModelo();
-        $resultado = $modeloAlbum->toggleLikeAlbum($idAlbum, $idUsuario);
     }
 
     echo json_encode($resultado);

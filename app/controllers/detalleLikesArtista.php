@@ -1,5 +1,5 @@
 <?php
-
+//carga el detalle del album de likes de un artista en el perfil
 ini_set('display_errors', 0);
 error_reporting(0);
 

@@ -68,10 +68,10 @@ class ImagenModelo
      * @param int $idUsuario El ID del usuario que da el Like.
      * @return array Un array con 'accion' (like/dislike) y 'totalLikes'.
      */
-    public function toggleLike(int $idImagen, int $idUsuario): array
+    public function toggleLike(int $idImagen, int $idUsuario)
     {
         $conexion = abrirConexion();
-        
+
         // Sanear las entradas
         $idImagen = (int)$idImagen;
         $idUsuario = (int)$idUsuario;
@@ -94,19 +94,56 @@ class ImagenModelo
         $resultadoAccion = mysqli_query($conexion, $consultaAccion);
 
         if (!$resultadoAccion) {
-             // Si la acción falla, lanzamos una excepción o devolvemos un error
-             cerrarConexion($conexion);
-             throw new Exception("Error al procesar el like en la BD: " . mysqli_error($conexion));
+            // Si la acción falla, lanzamos una excepción o devolvemos un error
+            cerrarConexion($conexion);
+            throw new Exception("Error al procesar el like en la BD: " . mysqli_error($conexion));
         }
 
-        // 2. Obtener el nuevo conteo de likes
-        $totalLikes = $this->contarLikes($idImagen, $conexion); 
+        //crear la notificacion solo si es un like
+        if ($accion === 'like') {
+            try {
+                // A. Obtener el ID del dueño de la foto (Usuario Destino)
+                $stmtOwner = $conexion->prepare("
+                SELECT a.idUsuarioAlbum 
+                FROM imagen i
+                JOIN album a ON i.idAlbumImagen = a.idAlbum
+                WHERE i.idImagen = ? LIMIT 1
+            ");
+                $stmtOwner->bind_param("i", $idImagen);
+                $stmtOwner->execute();
+                $resultOwner = $stmtOwner->get_result();
+                $ownerData = $resultOwner->fetch_assoc();
+                $stmtOwner->close();
 
-        // 3. Cerrar conexión y devolver resultado
-        cerrarConexion($conexion);
-        return ['accion' => $accion, 'totalLikes' => $totalLikes];
+                if ($ownerData && isset($ownerData['idUsuarioAlbum'])) {
+                    $idUsuarioDestino = (int)$ownerData['idUsuarioAlbum'];
+
+                    // B. Insertar notificación (solo si no es un auto-like)
+                    if ($idUsuarioDestino > 0 && $idUsuarioDestino != $idUsuario) {
+                        $tipo = 'like';
+                        $mensaje = " le ha dado me gusta a tu foto.";
+
+                        $stmtNotif = $conexion->prepare("
+                        INSERT INTO notificaciones (idUsuarioDestino, idUsuarioAccion, tipo, mensaje, leida, fecha) 
+                        VALUES (?, ?, ?, ?, 0, NOW())
+                    ");
+                        $stmtNotif->bind_param("iiss", $idUsuarioDestino, $idUsuario, $tipo, $mensaje);
+                        $stmtNotif->execute(); // Se inserta la notificación
+                        $stmtNotif->close();
+                    }
+                }
+            } catch (Exception $e) {
+                error_log("Error al crear notificación: " . $e->getMessage());
+            }
+
+            // 2. Obtener el nuevo conteo de likes
+            $totalLikes = $this->contarLikes($idImagen, $conexion);
+
+            // 3. Cerrar conexión y devolver resultado
+            cerrarConexion($conexion);
+            return ['accion' => $accion, 'totalLikes' => $totalLikes];
+        }
     }
-
     /**
      * Cuenta el número de 'Me Gusta' para una imagen específica.
      * @param int $idImagen El ID de la imagen.
@@ -122,10 +159,10 @@ class ImagenModelo
         }
 
         $idImagen = (int)$idImagen;
-        
+
         $consulta = "SELECT COUNT(*) as total FROM megusta WHERE idImagenLike = $idImagen;";
         $resultado = mysqli_query($conexion, $consulta);
-        
+
         $total = 0;
         if ($resultado && $fila = mysqli_fetch_assoc($resultado)) {
             $total = (int)$fila['total'];
@@ -134,8 +171,7 @@ class ImagenModelo
         if ($cerrar) {
             cerrarConexion($conexion);
         }
-        
+
         return $total;
     }
 }
-
