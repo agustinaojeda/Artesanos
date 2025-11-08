@@ -197,6 +197,7 @@ $conexion->close();
     <link rel="stylesheet" href="../../public/assets/css/nav.css">
     <link rel="stylesheet" href="../../public/assets/css/home.css">
     <link rel="stylesheet" href="../../public/assets/css/perfil.css">
+    <link rel="stylesheet" href="../../public/assets/css/modalEliminarAlbum.css">
 
     <style>
         .modal {
@@ -396,7 +397,7 @@ $conexion->close();
             font-weight: 600;
             color: #333;
         }
-        
+        /* Tres puntitos */
         .opciones-album {
             position: absolute;
             top: 8px;
@@ -409,7 +410,7 @@ $conexion->close();
             border-radius: 50%;
             padding: 4px 6px;
         }
-
+       
     </style>
 </head>
 
@@ -568,8 +569,9 @@ $conexion->close();
                                     </li>
                                     <li>
                                         <a class="dropdown-item text-danger eliminar-album" href="#"
-                                        data-id="<?= $album['idAlbum'] ?>"
-                                        onclick="event.stopPropagation();">Eliminar álbum</a>
+                                        data-id="<?= $album['idAlbum'] ?>">
+                                        Eliminar álbum
+                                        </a>
                                     </li>
                                 </ul>
                             </div>
@@ -704,8 +706,34 @@ $conexion->close();
             </div>
         </div>
     </div>
-
-
+    <!-- Modal de confirmación de eliminación -->
+        <div class="modal fade" id="modalConfirmarEliminar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Eliminar álbum</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que querés eliminar este álbum? Si elimina, no puede deshacer esa acción.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarEliminar" class="btn btn-danger">Eliminar</button>
+            </div>
+            </div>
+        </div>
+        </div>
+        <!-- Modal estilo éxito al eliminar álbum -->
+        <div id="modalExitoEliminar" class="modal-exito-eliminar" style="display: none;">
+        <div class="modal-exito-contenido">
+            <div class="icono-check">
+            <i class="bi bi-check2"></i>
+            </div>
+            <h2>¡Álbum eliminado con éxito!</h2>
+            <p>El álbum fue eliminado correctamente.</p>
+        </div>
+        </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
@@ -950,6 +978,90 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  let idAlbumAEliminar = null;
+  let btnEliminarReferencia = null;
+
+  const modalEliminar = new bootstrap.Modal(document.getElementById("modalConfirmarEliminar"));
+  const btnConfirmarEliminar = document.getElementById("btnConfirmarEliminar");
+
+  // Delegación de eventos para los botones eliminar
+  document.addEventListener("click", function (e) {
+    const btnEliminar = e.target.closest(".eliminar-album");
+    if (!btnEliminar) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    idAlbumAEliminar = btnEliminar.dataset.id;
+    btnEliminarReferencia = btnEliminar;
+
+    // Mostramos el modal
+    modalEliminar.show();
+  });
+
+  // Confirmación dentro del modal
+  btnConfirmarEliminar.addEventListener("click", function () {
+    if (!idAlbumAEliminar) return;
+
+    fetch("../controllers/eliminarAlbum.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "idAlbum=" + encodeURIComponent(idAlbumAEliminar),
+      credentials: "same-origin",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          const card = btnEliminarReferencia.closest(".album-card");
+          if (card) card.remove();
+          // Cerramos modal y mostramos notificación visual
+          modalEliminar.hide();
+         // Mostrar modal personalizado de éxito
+        const modalExito = document.getElementById("modalExitoEliminar");
+        modalExito.style.display = "flex";
+        modalExito.classList.add("fade-in");
+
+        // ⏳ Mantenerlo visible 5 segundos, luego desvanecer y redirigir
+        setTimeout(() => {
+            modalExito.classList.remove("fade-in");
+            modalExito.classList.add("fade-out");
+
+            setTimeout(() => {
+            modalExito.style.display = "none";
+            // 🔁 Redirigir al home
+            window.location.href = "perfil.php";
+            }, 800); // 0.8s para la animación de salida
+        }, 3000);
+        } else {
+          mostrarToast("Error: " + data.message, "danger");
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        mostrarToast("Error inesperado.", "danger");
+      });
+  });
+
+  // Función para mostrar toasts bonitos (requiere Bootstrap 5)
+  function mostrarToast(mensaje, tipo = "info") {
+    const toast = document.createElement("div");
+    toast.className = `toast align-items-center text-bg-${tipo} border-0 position-fixed bottom-0 end-0 m-3`;
+    toast.setAttribute("role", "alert");
+    toast.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">${mensaje}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    `;
+    document.body.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+    bsToast.show();
+    toast.addEventListener("hidden.bs.toast", () => toast.remove());
+  }
 });
 </script>
 

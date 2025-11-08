@@ -290,5 +290,38 @@ class AlbumModelo
         cerrarConexion($conexion);
         return $total;
     }
+        public function esPropietarioDelAlbum($idAlbum, $idUsuario) {
+        $conexion = abrirConexion();
+
+        $sql = "SELECT COUNT(*) FROM album WHERE idAlbum = ? AND idUsuarioAlbum = ?";
+        $stmt = $conexion->prepare($sql);
+        $stmt->bind_param("ii", $idAlbum, $idUsuario);
+        $stmt->execute();
+        $stmt->bind_result($count);
+        $stmt->fetch();
+        cerrarConexion($conexion);
+
+        return $count > 0;
+    }
+
+    public function eliminarAlbum($idAlbum) {
+        $conexion = abrirConexion();
+
+        // ❗ Antes de eliminar álbum, eliminamos sus imágenes
+        $sqlImgs = "DELETE FROM imagen WHERE idAlbumImagen = ?";
+        $stmtImgs = $conexion->prepare($sqlImgs);
+        $stmtImgs->bind_param("i", $idAlbum);
+        $stmtImgs->execute();
+
+        // ✅ Ahora sí eliminamos el álbum
+        $sql = "DELETE FROM album WHERE idAlbum = ?";
+        $stmt = $conexion->prepare($sql);
+        $stmt->bind_param("i", $idAlbum);
+        $ok = $stmt->execute();
+
+        cerrarConexion($conexion);
+        return $ok;
+    }
+
 }
 

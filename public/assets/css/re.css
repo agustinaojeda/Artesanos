@@ -161,7 +161,7 @@ input::placeholder {
   position: absolute;
   right: 12px;          
   top: 50%;            
-  transform: translateY(-180%);  
+  transform: translateY(-50%);  
   cursor: pointer;
   z-index: 5;
   height: 1em;          
