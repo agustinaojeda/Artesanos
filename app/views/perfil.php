@@ -590,15 +590,6 @@ $conexion->close();
                                         <small class="text-muted">
                                             <?= (int)$album['total_imagenes'] ?> imágenes • <?= $albumDate->format('d/m/Y') ?>
                                         </small>
-
-                                        <div class="d-flex gap-1 align-items-center mt-1">
-                                            <img src="../../public/assets/images/like.png"
-                                                alt="Me gusta"
-                                                class="img-fluid btn-like-galeria"
-                                                data-idalbum="<?= (int)$album['idAlbum'] ?>"
-                                                style="max-height: 25px; cursor: pointer;">
-                                            <span id="likes-count-album-<?= (int)$album['idAlbum'] ?>" class="text-muted small align-self-center">0</span>
-                                        </div>
                                     </div>
 
                                 </div> <!-- FIN del div que abre modal -->
