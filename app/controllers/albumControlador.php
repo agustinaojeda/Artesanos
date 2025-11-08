@@ -30,5 +30,12 @@ class AlbumCont{
         $imagenModelo = new ImagenModelo();
         return $imagenModelo->crearImagen($idAlbum, $titulo, $descripcion, $etiqueta, $url);
     }
+
+    public function obtenerAlbumesVirtualesDeLikes(int $usuarioId){
+        return $this->albumModelo->obtenerAlbumesVirtualesDeLikes($usuarioId);
+    }
+    public function obtenerImagenesLikeadasDelArtista(int $usuarioId, int $artistaId){
+        return $this->albumModelo->obtenerImagenesLikeadasDelArtista($usuarioId, $artistaId);
+    }
 }
 ?>

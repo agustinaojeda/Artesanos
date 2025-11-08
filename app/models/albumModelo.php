@@ -307,13 +307,12 @@ class AlbumModelo
     public function eliminarAlbum($idAlbum) {
         $conexion = abrirConexion();
 
-        // ❗ Antes de eliminar álbum, eliminamos sus imágenes
+        //Antes de eliminar álbum, eliminamos sus imágenes
         $sqlImgs = "DELETE FROM imagen WHERE idAlbumImagen = ?";
         $stmtImgs = $conexion->prepare($sqlImgs);
         $stmtImgs->bind_param("i", $idAlbum);
         $stmtImgs->execute();
 
-        // ✅ Ahora sí eliminamos el álbum
         $sql = "DELETE FROM album WHERE idAlbum = ?";
         $stmt = $conexion->prepare($sql);
         $stmt->bind_param("i", $idAlbum);
@@ -322,6 +321,109 @@ class AlbumModelo
         cerrarConexion($conexion);
         return $ok;
     }
+
+    //arma los albumes q el usuario ha likeado de otros usuarios q sigue
+    function obtenerAlbumesVirtualesDeLikes(int $usuarioId): array
+{    
+    $conexion = abrirConexion();
+    $sql = "
+        SELECT DISTINCT
+            u.idUsuario AS idArtista,
+            u.apodoUsuario,
+            u.arrobaUsuario
+        FROM megusta ml
+        JOIN imagen i ON i.idImagen = ml.idImagenLike
+        JOIN album a ON a.idAlbum = i.idAlbumImagen
+        JOIN usuario u ON u.idUsuario = a.idUsuarioAlbum
+        JOIN seguimiento s ON s.idSeguidor = ml.idUsuarioLike AND s.idSeguido = u.idUsuario
+        WHERE ml.idUsuarioLike = ? AND s.estadoSeguimiento = 'activo'
+        ORDER BY u.apodoUsuario ASC
+    ";
+
+    $stmt = $conexion->prepare($sql);
+    if (!$stmt) {
+        error_log("Error al preparar la consulta de likes virtuales: " . $conexion->error);
+        return [];
+    }
+    
+    $stmt->bind_param("i", $usuarioId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $albumesVirtuales = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    foreach ($albumesVirtuales as $key => $artista) {
+        $idArtista = (int)$artista['idArtista']; 
+        
+        $albumesVirtuales[$key]['fotoPerfil'] = obtenerAvatar($idArtista);
+    }
+
+    mysqli_close($conexion);
+    return $albumesVirtuales;
+}
+
+
+//Obtiene las imágenes que el usuario actual ($usuarioId) ha likeado al artista ($artistaId).
+// Función corregida: ahora solo toma la ID del usuario cuyos likes queremos ver
+function obtenerImagenesLikeadasDelArtista(int $usuarioQueDioLikeId, int $artistaCuyasFotosSonId): array
+{
+    $conexion = abrirConexion();
+    $sql = "
+        SELECT 
+            i.idImagen, i.tituloImagen, i.descripcionImagen, i.urlImagen, i.fechaImagen, i.idAlbumImagen,
+            a.tituloAlbum AS nombreAlbum
+        FROM megusta m
+        JOIN imagen i ON i.idImagen = m.idImagenLike
+        JOIN album a ON a.idAlbum = i.idAlbumImagen
+        WHERE m.idUsuarioLike = ? AND a.idUsuarioAlbum = ? 
+        ORDER BY m.fechaLike DESC
+    ";
+
+    $stmt = $conexion->prepare($sql);
+    if (!$stmt) {
+        error_log("Error al preparar la consulta de imágenes likeadas: " . $conexion->error);
+        return [];
+    }
+    $stmt->bind_param("ii", $usuarioQueDioLikeId, $artistaCuyasFotosSonId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $likedImages = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    
+    mysqli_close($conexion);
+    return $likedImages;
+}
+function obtenerDatosUsuarioPorId(int $idUsuario): ?array 
+{
+    $conn = abrirConexion();
+    $sql = "
+        SELECT 
+            idUsuario, 
+            apodoUsuario AS apodo, 
+            arrobaUsuario AS arroba
+            -- Puedes añadir otros campos que necesites aquí
+        FROM usuario 
+        WHERE idUsuario = ? 
+        LIMIT 1
+    ";
+
+    if (!$stmt = $conn->prepare($sql)) {
+        error_log("Error al preparar la consulta de usuario: " . $conn->error);
+        return null;
+    }
+    
+    $stmt->bind_param("i", $idUsuario);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $usuario = $result->fetch_assoc();
+    
+    $stmt->close();
+
+    cerrarConexion($conn);  
+    
+    return $usuario;
+}
 
 }
 

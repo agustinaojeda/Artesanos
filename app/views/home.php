@@ -43,8 +43,6 @@ $mostrarLogin = isset($_SESSION['mostrarLogin']) && $_SESSION['mostrarLogin'] ==
       <?php
       if (!empty($albumes) && count($albumes) > 0) {
         foreach ($albumes as $a) {
-          // Si necesitas portada de imagen, la sig línea la puedes seguir usando para mostrar la imagen,
-          // pero el like del Home será por álbum, no por imagen.
           $idImagenPortada = isset($a->idImagenPortada) ? (int)$a->idImagenPortada : (int)$a->idAlbum;
           $urlPortada = htmlspecialchars($a->urlPortada);
           $tituloAlbum = htmlspecialchars($a->tituloAlbum);
@@ -55,16 +53,8 @@ $mostrarLogin = isset($_SESSION['mostrarLogin']) && $_SESSION['mostrarLogin'] ==
               <a href="#" class="abrir-modal-album" data-id="' . (int)$a->idAlbum . '" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum" style="text-decoration: none; color: inherit;">
                 <div class="card-body">
                   <img class="card-img-top" style="border-radius: 10px; height: 200px; object-fit: cover;" src="../../public/uploads/portadas/' . $urlPortada . '"/>
-                  <div class="d-flex justify-content-between align-items-center mt-2">
+                  <div class="d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">' . $tituloAlbum . '</h5>
-                      <div class="d-flex align-items-center gap-1" style="margin-top: 8px;">
-                        <img src="../../public/assets/images/like.png"
-                          alt="Me gusta"
-                          class="img-fluid btn-like-galeria"
-                          data-idalbum="' . (int)$a->idAlbum . '"
-                        style="max-height: 25px; cursor: pointer;">
-                        <span id="likes-count-album-' . (int)$a->idAlbum . '" class="text-muted small">0</span>
-                      </div>
                   </div>
                   <p class="card-text mb-0">' . $apodoUsuario . ' - @' . $arrobaUsuario . '</p>
                 </div>

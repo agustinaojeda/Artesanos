@@ -1,11 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const modal = document.getElementById("modalDetalleAlbum");
-  const modalLabel = document.getElementById("modalDetalleAlbumLabel");
-  const modalBodyIzq = document.getElementById("detalleAlbumIzquierda");
-  const modalBodyDer = document.getElementById("detalleAlbumDerecha");
-  const fotoPerfil = document.getElementById("modalFotoPerfil");
-
-  function tiempoRelativo(fech) {
+function tiempoRelativo(fech) {
   let fecha = new Date(fech);
   let ahora = new Date();
   let diffMs = ahora - fecha;
@@ -14,37 +7,43 @@ document.addEventListener("DOMContentLoaded", () => {
   let diffHoras = Math.floor(diffMin / 60);
   let diffDias = Math.floor(diffHoras / 24);
 
-  if (diffSeg < 5) return 'justo ahora'; //si lo subio hace menos de 5 segundos muestra justo ahora
+  if (diffSeg < 5) return "justo ahora"; //si lo subio hace menos de 5 segundos muestra justo ahora
   if (diffSeg < 60) {
-    const unidad = diffSeg === 1 ? 'segundo' : 'segundos';
+    const unidad = diffSeg === 1 ? "segundo" : "segundos";
     return `hace ${diffSeg} ${unidad}`;
   }
 
   if (diffMin < 60) {
-    const unidad = diffMin === 1 ? 'minuto' : 'minutos';
+    const unidad = diffMin === 1 ? "minuto" : "minutos";
     return `hace ${diffMin} ${unidad}`;
   }
 
   if (diffHoras < 24) {
-    const unidad = diffHoras === 1 ? 'hora' : 'horas';
+    const unidad = diffHoras === 1 ? "hora" : "horas";
     return `hace ${diffHoras} ${unidad}`;
   }
 
-  if (diffDias === 1) return 'ayer';
+  if (diffDias === 1) return "ayer";
   if (diffDias < 30) {
-    const unidad = diffDias === 1 ? 'día' : 'días';
+    const unidad = diffDias === 1 ? "día" : "días";
     return `hace ${diffDias} ${unidad}`;
   }
 
-//si hace mas de un mes entonces dice la fecha completa
-  return fecha.toLocaleDateString('es-ES', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+  //si hace mas de un mes entonces dice la fecha completa
+  return fecha.toLocaleDateString("es-ES", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 }
+document.addEventListener("DOMContentLoaded", () => {
+  const modal = document.getElementById("modalDetalleAlbum");
+  const modalLabel = document.getElementById("modalDetalleAlbumLabel");
+  const modalBodyIzq = document.getElementById("detalleAlbumIzquierda");
+  const modalBodyDer = document.getElementById("detalleAlbumDerecha");
+  const fotoPerfil = document.getElementById("modalFotoPerfil");
 
-  document.querySelectorAll(".album-card").forEach((card) => {
+  document.querySelectorAll(".album-card-").forEach((card) => {
     card.addEventListener("click", async () => {
       const albumId = card.dataset.id;
 
@@ -54,7 +53,9 @@ document.addEventListener("DOMContentLoaded", () => {
       fotoPerfil.src = "";
 
       try {
-        const res = await fetch(`../../app/controllers/detalleAlbum.php?id=${albumId}`);
+        const res = await fetch(
+          `../../app/controllers/detalleAlbum.php?id=${albumId}`
+        );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
@@ -77,7 +78,9 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>`;
 
         fotoPerfil.src = data.fotoPerfil;
-        document.getElementById("btnSeguir").setAttribute("data-id", data.idUsuario);
+        document
+          .getElementById("btnSeguir")
+          .setAttribute("data-id", data.idUsuario);
         modalBodyIzq.innerHTML = data.izquierda;
         modalBodyDer.innerHTML = data.derecha;
 
@@ -112,7 +115,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const descripcion = activo?.dataset.descripcion || "";
             const idImagen = activo?.dataset.idimagen;
             document.getElementById("tituloImagen").textContent = titulo;
-            document.getElementById("descripcionImagen").textContent = descripcion;
+            document.getElementById("descripcionImagen").textContent =
+              descripcion;
             btnEnviar.setAttribute("data-idimagen", idImagen);
             mostrarComentarios(idImagen);
 
@@ -120,7 +124,11 @@ document.addEventListener("DOMContentLoaded", () => {
             if (btnLikeModal && idImagen) {
               btnLikeModal.dataset.idimagen = idImagen;
               try {
-                const resp = await fetch(`../controllers/obtenerLikes.php?idImagen=${encodeURIComponent(idImagen)}`);
+                const resp = await fetch(
+                  `../controllers/obtenerLikes.php?idImagen=${encodeURIComponent(
+                    idImagen
+                  )}`
+                );
                 const likeData = await resp.json();
                 if (resp.ok && likeData.totalLikes !== undefined) {
                   if (countModal) countModal.textContent = likeData.totalLikes;
@@ -129,7 +137,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     : "../../public/assets/images/like.png";
                 }
               } catch (err) {
-                console.warn("No se pudieron cargar likes en modal para imagen", idImagen, err);
+                console.warn(
+                  "No se pudieron cargar likes en modal para imagen",
+                  idImagen,
+                  err
+                );
               }
             }
           }
@@ -159,7 +171,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     listaComentarios.insertAdjacentHTML("beforeend", nuevo);
                     inputComentario.value = "";
 
-                    if (!data.comentarios[idImagen]) data.comentarios[idImagen] = [];
+                    if (!data.comentarios[idImagen])
+                      data.comentarios[idImagen] = [];
                     data.comentarios[idImagen].push({
                       apodo: res.apodo,
                       avatar: res.avatar,
@@ -188,18 +201,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const idAlbum = el.dataset.idalbum;
     if (!idAlbum) return;
     try {
-      const resp = await fetch(`../controllers/obtenerLikes.php?idAlbum=${encodeURIComponent(idAlbum)}`);
+      const resp = await fetch(
+        `../controllers/obtenerLikes.php?idAlbum=${encodeURIComponent(idAlbum)}`
+      );
       const data = await resp.json();
       if (resp.ok && data.totalLikes !== undefined) {
         // Actualiza el contador adyacente para evitar colisiones de IDs en distintas secciones
-        const contador = el.nextElementSibling || el.parentElement?.querySelector(`span[id="likes-count-album-${idAlbum}"]`);
+        const contador =
+          el.nextElementSibling ||
+          el.parentElement?.querySelector(
+            `span[id="likes-count-album-${idAlbum}"]`
+          );
         if (contador) contador.textContent = data.totalLikes;
         el.src = data.likedByUser
           ? "../../public/assets/images/likelleno.png"
           : "../../public/assets/images/like.png";
       }
     } catch (err) {
-      console.warn("No se pudieron cargar likes iniciales para álbum", idAlbum, err);
+      console.warn(
+        "No se pudieron cargar likes iniciales para álbum",
+        idAlbum,
+        err
+      );
     }
   });
 
@@ -208,17 +231,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const idImagen = el.dataset.idimagen;
     if (!idImagen) return;
     try {
-      const resp = await fetch(`../controllers/obtenerLikes.php?idImagen=${encodeURIComponent(idImagen)}`);
+      const resp = await fetch(
+        `../controllers/obtenerLikes.php?idImagen=${encodeURIComponent(
+          idImagen
+        )}`
+      );
       const data = await resp.json();
       if (resp.ok && data.totalLikes !== undefined) {
-        const contador = document.getElementById(`likes-count-image-${idImagen}`);
+        const contador = document.getElementById(
+          `likes-count-image-${idImagen}`
+        );
         if (contador) contador.textContent = data.totalLikes;
         el.src = data.likedByUser
           ? "../../public/assets/images/likelleno.png"
           : "../../public/assets/images/like.png";
       }
     } catch (err) {
-      console.warn("No se pudieron cargar likes iniciales para imagen", idImagen, err);
+      console.warn(
+        "No se pudieron cargar likes iniciales para imagen",
+        idImagen,
+        err
+      );
     }
   });
 
@@ -234,17 +267,21 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const resp = await fetch("megusta.php", {
           method: "POST",
-          body: new URLSearchParams({ idImagen })
+          body: new URLSearchParams({ idImagen }),
         });
         const data = await resp.json();
         if (resp.ok && data.totalLikes !== undefined) {
           const contadorModal = document.getElementById("likes-count-display");
           if (contadorModal) contadorModal.textContent = data.totalLikes;
-          btnLikeModal.src = data.accion === "like"
-            ? "../../public/assets/images/likelleno.png"
-            : "../../public/assets/images/like.png";
+          btnLikeModal.src =
+            data.accion === "like"
+              ? "../../public/assets/images/likelleno.png"
+              : "../../public/assets/images/like.png";
         } else {
-          console.error("Error al registrar el like de imagen (modal):", data.error || "Respuesta inesperada");
+          console.error(
+            "Error al registrar el like de imagen (modal):",
+            data.error || "Respuesta inesperada"
+          );
         }
       } catch (err) {
         console.error("Error en el fetch de like de imagen (modal):", err);
@@ -261,17 +298,25 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const resp = await fetch("megusta.php", {
           method: "POST",
-          body: new URLSearchParams({ idAlbum })
+          body: new URLSearchParams({ idAlbum }),
         });
         const data = await resp.json();
         if (resp.ok && data.totalLikes !== undefined) {
-          const contador = btnAlbum.nextElementSibling || btnAlbum.parentElement?.querySelector(`span[id="likes-count-album-${idAlbum}"]`);
+          const contador =
+            btnAlbum.nextElementSibling ||
+            btnAlbum.parentElement?.querySelector(
+              `span[id="likes-count-album-${idAlbum}"]`
+            );
           if (contador) contador.textContent = data.totalLikes;
-          btnAlbum.src = data.accion === "like"
-            ? "../../public/assets/images/likelleno.png"
-            : "../../public/assets/images/like.png";
+          btnAlbum.src =
+            data.accion === "like"
+              ? "../../public/assets/images/likelleno.png"
+              : "../../public/assets/images/like.png";
         } else {
-          console.error("Error al registrar el like de álbum:", data.error || "Respuesta inesperada");
+          console.error(
+            "Error al registrar el like de álbum:",
+            data.error || "Respuesta inesperada"
+          );
         }
       } catch (err) {
         console.error("Error en el fetch de like de álbum:", err);
@@ -288,22 +333,192 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const resp = await fetch("megusta.php", {
           method: "POST",
-          body: new URLSearchParams({ idImagen })
+          body: new URLSearchParams({ idImagen }),
         });
         const data = await resp.json();
         if (resp.ok && data.totalLikes !== undefined) {
-          const contador = document.getElementById(`likes-count-image-${idImagen}`);
+          const contador = document.getElementById(
+            `likes-count-image-${idImagen}`
+          );
           if (contador) contador.textContent = data.totalLikes;
-          btnImg.src = data.accion === "like"
-            ? "../../public/assets/images/likelleno.png"
-            : "../../public/assets/images/like.png";
+          btnImg.src =
+            data.accion === "like"
+              ? "../../public/assets/images/likelleno.png"
+              : "../../public/assets/images/like.png";
         } else {
-          console.error("Error al registrar el like de imagen:", data.error || "Respuesta inesperada");
+          console.error(
+            "Error al registrar el like de imagen:",
+            data.error || "Respuesta inesperada"
+          );
         }
       } catch (err) {
         console.error("Error en el fetch de like de imagen:", err);
       }
       return;
+    }
+  });
+});
+
+//llena los albumes de like
+document.querySelectorAll(".album-card-like").forEach((card) => {
+  card.addEventListener("click", async () => {
+    const modalElement = document.getElementById("modalDetalleAlbumLike"); 
+    const modalLabel = document.getElementById("modalDetalleAlbumLabelLike");
+    const modalBodyIzq = document.getElementById("detalleAlbumIzquierdaLike");
+    const modalBodyDer = document.getElementById("detalleAlbumDerechaLike");
+    const fotoPerfil = document.getElementById("modalFotoPerfil");
+
+    const fotosDeId = card.dataset.fotosDeId; 
+    const dadorLikesId = card.dataset.dadorLikesId; 
+    const artistaApodo = card.dataset.artistaApodo;
+
+    modalLabel.innerHTML = `<img src='../../public/assets/images/logo.png' width='28' class='me-2'> Cargando likes de ${artistaApodo}...`;
+    modalBodyIzq.innerHTML = `<p class='text-center py-5'>Cargando imágenes...</p>`;
+    modalBodyDer.innerHTML = `<p class='text-center py-5'>Cargando datos...</p>`;
+    fotoPerfil.src = "";
+
+    try {
+      const res = await fetch(
+        `../../app/controllers/detalleLikesArtista.php?dadorLikesId=${dadorLikesId}&fotosDeId=${fotosDeId}`
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      if (data.error) {
+        modalBodyIzq.innerHTML = `<p class='text-danger text-center py-5'>${data.error}</p>`;
+        modalBodyDer.innerHTML = "";
+        modalLabel.textContent = "Error al cargar artista";
+        return;
+      }
+
+      // Mostrar datos
+
+      modalLabel.innerHTML = `<div class="d-flex flex-column">
+            <div class="d-flex align-items-center gap-2">
+                <h4 class="mb-0"><strong>Imágenes que me gustaron de ${data.apodo}</strong></h4>
+            </div>
+        </div>`;
+
+      modalBodyIzq.innerHTML = data.izquierda;
+      modalBodyDer.innerHTML = data.derecha;
+      const bootstrapModal = new bootstrap.Modal(modalElement);
+      bootstrapModal.show();
+
+      setTimeout(() => {
+        const btnEnviar = document.getElementById("btnEnviarComentario");
+        const inputComentario = document.getElementById("inputComentario");
+        const carrusel = document.getElementById("carouselAlbumVirtual");
+        const listaComentarios = document.getElementById("listaComentarios");
+        const btnLikeModal = document.getElementById("btn-like-imagen");
+        const countModal = document.getElementById("likes-count-display");
+
+        function mostrarComentarios(idImg) {
+          const comentarios = data.comentarios[idImg] || [];
+          listaComentarios.innerHTML = comentarios
+            .map(
+              (c) => `
+              <div class="d-flex gap-2 mb-3" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px;">
+                <img src="${c.avatar}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                <div>
+                  <strong>${c.apodo}</strong><br>
+                  <p class="mb-0">${c.mensaje}</p>
+                </div>
+              </div>`
+            )
+            .join("");
+        }
+
+        async function actualizarInfoImagen() {
+          const activo = carrusel.querySelector(".carousel-item.active");
+          const titulo = activo?.dataset.titulo || "";
+          const descripcion = activo?.dataset.descripcion || "";
+          const idImagen = activo?.dataset.idimagen;
+          const nombreAlbum = activo?.dataset.nombrealbum || "";
+
+          document.getElementById("tituloImagen").textContent = titulo;
+          document.getElementById("descripcionImagen").textContent =
+            descripcion;
+          const elementoAlbum = document.getElementById("nombreAlbumActivo");
+          if (elementoAlbum) {
+            elementoAlbum.textContent = nombreAlbum;
+          }
+
+          btnEnviar.setAttribute("data-idimagen", idImagen);
+          mostrarComentarios(idImagen);
+
+          // Actualizar estado y conteo de like del modal para la imagen activa
+          if (btnLikeModal && idImagen) {
+            btnLikeModal.dataset.idimagen = idImagen;
+            try {
+              const resp = await fetch(
+                `../controllers/obtenerLikes.php?idImagen=${encodeURIComponent(
+                  idImagen
+                )}`
+              );
+              const likeData = await resp.json();
+              if (resp.ok && likeData.totalLikes !== undefined) {
+                if (countModal) countModal.textContent = likeData.totalLikes;
+                btnLikeModal.src = likeData.likedByUser
+                  ? "../../public/assets/images/likelleno.png"
+                  : "../../public/assets/images/like.png";
+              }
+            } catch (err) {
+              console.warn(
+                "No se pudieron cargar likes en modal para imagen",
+                idImagen,
+                err
+              );
+            }
+          }
+        }
+
+        if (btnEnviar && inputComentario) {
+          btnEnviar.addEventListener("click", () => {
+            const idImagen = btnEnviar.getAttribute("data-idimagen");
+            const mensaje = inputComentario.value.trim();
+            if (!mensaje) return;
+
+            fetch("../../app/controllers/agregarComentario.php", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ idImagen, mensaje }),
+            })
+              .then((res) => res.json())
+              .then((res) => {
+                if (res.ok) {
+                  const nuevo = `
+                      <div class="d-flex gap-2 mb-3">
+                        <img src="${res.avatar}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                        <div>
+                          <strong>${res.apodo}</strong><br>
+                          <p class="mb-0">${res.mensaje}</p>
+                        </div>
+                      </div>`;
+                  listaComentarios.insertAdjacentHTML("beforeend", nuevo);
+                  inputComentario.value = "";
+
+                  if (!data.comentarios[idImagen])
+                    data.comentarios[idImagen] = [];
+                  data.comentarios[idImagen].push({
+                    apodo: res.apodo,
+                    avatar: res.avatar,
+                    mensaje: res.mensaje,
+                    fecha: new Date().toISOString(),
+                  });
+                }
+              });
+          });
+        }
+        if (carrusel) {
+          actualizarInfoImagen();
+          carrusel.addEventListener("slid.bs.carousel", actualizarInfoImagen);
+        }
+      }, 150);
+    } catch (err) {
+      console.error(`Error al cargar likes del artista ${fotosDeId}:`, err);
+      modalLabel.textContent = "Error de carga";
+      modalBodyIzq.innerHTML = `<p class='text-danger text-center py-5'>No se pudo cargar el álbum de likes.</p>`;
+      modalBodyDer.innerHTML = "";
     }
   });
 });
