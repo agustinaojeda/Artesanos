@@ -1,6 +1,6 @@
 <?php
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
 include 'imagen.php';
 
 // Clase modelo: contiene la lógica de acceso a datos.

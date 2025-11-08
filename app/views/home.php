@@ -1,41 +1,22 @@
 <?php
-include '../controllers/albumControlador.php';
-if (session_status() === PHP_SESSION_NONE) {
-  session_start();
-}
+require_once CTRL_PATH . '/albumControlador.php'; 
 
 // home.php (Línea 7 - CORREGIDO)
 $idUsuario = isset($_SESSION['usuario']['id']) ? (int)$_SESSION['usuario']['id'] : 0;
 
 $albumes = new AlbumCont();
 $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la bd
+
+$pageTitle = 'Artesanos - Home';
+include VIEW_PATH . '/header.php'; 
+include VIEW_PATH . '/nav.php'; 
 ?>
-<!DOCTYPE html>
-<html lang="es">
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Artesanos</title>
-  <link rel="icon" href="../../public/assets/images/logo.png" type="image/x-icon">
-
-  <!--bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-
-  <link rel="stylesheet" href="../../public/assets/css/nav.css">
-  <link rel="stylesheet" href="../../public/assets/css/re.css">
-  <link rel="stylesheet" href="../../public/assets/css/footer.css">
-  <link rel="stylesheet" href="../../public/assets/css/home.css">
-
-</head>
-
-<body>
-  <?php include 'nav.php'; ?>
-  <div class="container mt-4">
-    <div class="row row-cols-2 row-cols-md-4 g-5">
+<div class="container mt-4">
+  <div class="row row-cols-2 row-cols-md-4 g-5 justify-content-center">
 
 <?php
+
   if (!empty($albumes) && count($albumes) > 0) {
     foreach ($albumes as $a) {
       // Si necesitas portada de imagen, la sig línea la puedes seguir usando para mostrar la imagen,
@@ -57,31 +38,32 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
                 </div>
               </a>
               <div class="d-flex gap-1 align-items-center mt-1">
-                <img src="../../public/assets/images/like.png"
+                <img src="' . $basePath . '/assets/images/like.png"
                      alt="Me gusta"
                      class="img-fluid btn-like-galeria"
                      data-idalbum="' . (int)$a->idAlbum . '"
                      style="max-height: 25px; cursor: pointer;">
                 <span id="likes-count-album-' . (int)$a->idAlbum . '" class="text-muted small align-self-center">0</span>
 
-                <img src="../../public/assets/images/comentario.png"
+                <img src="' . $basePath . '/assets/images/comentario.png"
                      alt="Comentario"
                      class="img-fluid"
                      style="max-height: 23px; cursor: pointer;">
               </div>
             </div>';
-        }
-      } else {
-        echo '<p class="text-center">Aún no hay álbumes disponibles.<br>¡Sé el primero en publicar!';
-      }
-      if ($idUsuario != 0) { //si el usuario esta logueado muestra el boton de cargar mas
-        echo '  <div class="text-center mt-4">
-          <button id="loadMore" class="btn btn-primary">Mostrar más</button>
-          </div>';
-      }
-      ?>
+    }
+  } else {
+    echo '<p class="text-center">Aún no hay álbumes disponibles.<br>¡Sé el primero en publicar!';
+  }
+  if ($idUsuario != 0) { //si el usuario esta logueado muestra el boton de cargar mas
+    echo '<div class="text-center mt-4" id="loadMore">
+      <button class="btn btn-primary">Mostrar más</button>
+      </div>';
+  }
+?>
     </div>
-  </div>
+</div>
+
   <!-- detalle de album-->
   <div class="modal fade" id="modalDetalleAlbum" tabindex="-1" aria-labelledby="modalDetalleAlbumLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
@@ -146,7 +128,7 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
                   <h4 mb-3>Sube la portada</h4>
                   <div class="col-lg-6 col-12 mb-3">
 
-                    <label for="inputPortada" class="imagenParaSubir" id="portada" style="display: block;"><img src="../../public/assets/images/agregarImagen.png" alt="Subir portada"></label>
+                    <label for="inputPortada" class="imagenParaSubir" id="portada" style="display: block;"><img src="<?= $basePath ?>/assets/images/agregarImagen.png" alt="Subir portada"></label>
                     <input type="file" name="subirPortada" id="inputPortada" accept="image/*" required>
                     <div class="invalid-feedback">Sube una imagen de portada.</div>
 
@@ -182,7 +164,7 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
             <div class="row">
               <div class="col-lg-3"></div>
               <div class="col-lg-4 col-12">
-                <label for="inputImagenes" class="imagenParaSubir"><img src="../../public/assets/images/agregarImagen.png" alt="Subir imagen"></label>
+                <label for="inputImagenes" class="imagenParaSubir"><img src="<?= $basePath ?>/assets/images/agregarImagen.png" alt="Subir imagen"></label>
                 <input type="file" name="inputImagenes" id="inputImagenes" accept="image/*">
 
                 <div class="invalid-feedback">Sube una imagen. El máximo son 20.</div>
@@ -218,9 +200,8 @@ $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la b
     </div>
   <?php endif; ?>
 
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-  <script src="../../public/assets/js/home.js"></script>
-</body>
 
-</html>
+<script src="<?= $basePath ?>/assets/js/home.js"></script>
+
+<script src="<?= $GLOBALS['basePath'] ?>/assets/js/home.js"></script>
+<?php include VIEW_PATH . '/footer.php'; ?>

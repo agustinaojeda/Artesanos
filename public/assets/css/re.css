@@ -44,7 +44,7 @@ p {
 .form-row {
   display: flex;
   gap: 10px;                
-  margin-bottom: 12px;
+  margin-bottom: 20px;
 }
 
 .form-row input {
@@ -57,7 +57,7 @@ p {
 
 /* === CAMPO INDIVIDUAL === */
 .form-single {
-  margin-bottom: 12px;
+  margin-bottom: 20px;
 }
 
 .form-single input {
@@ -129,9 +129,12 @@ input::placeholder {
 
 .error-text {
   color: #ef4444;
-  font-size: 0.85rem;
+  font-size: 0.70rem;
   margin-top: 3px;
   display: block;
+  position: absolute;
+  text-align: left;
+  line-height: 1;
 }
 
 /* Para inputs válidos */

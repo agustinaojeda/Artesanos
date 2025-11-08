@@ -1,6 +1,6 @@
 <?php
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
 
 $conexion = abrirConexion();
 
@@ -109,9 +109,9 @@ else {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
     <!-- CSS personalizado -->
-    <link rel="stylesheet" href="../../public/assets/css/nav.css">
-    <link rel="stylesheet" href="../../public/assets/css/buscar.css">
-    <link rel="stylesheet" href="../../public/assets/css/home.css">
+    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/nav.css">
+    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/buscar.css">
+    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/home.css">
 </head>
 <body>
 
@@ -129,8 +129,8 @@ else {
                 $totalSeg = (int)$row['totalSeg'];
                 $totalAlb = (int)$row['totalAlb'];
                 $foto = !empty($row['fotoPerfil'])
-                    ? '../../public/uploads/avatars/' . htmlspecialchars($row['fotoPerfil'])
-                    : '../../public/assets/images/logo.png';
+                    ? "$basePath/uploads/avatars/" . htmlspecialchars($row['fotoPerfil'])
+                    : "$basePath/assets/images/logo.png";
                 
                 $colores = ['#ffeedb', '#ffe0cc', '#ffd1a3', '#ffd6cc', '#e0ffe0', '#d9e8ff', '#f0d9ff', '#fff6cc'];
                 $colorRandom = $colores[array_rand($colores)];
@@ -156,10 +156,10 @@ else {
                 $apodo = htmlspecialchars($row['apodoUsuario']);
                 $arroba = htmlspecialchars($row['arrobaUsuario']);
                 $foto = !empty($row['fotoPerfil'])
-                    ? '../../public/uploads/avatars/' . htmlspecialchars($row['fotoPerfil'])
-                    : '../../public/assets/images/logo.png';
+                    ? "<?= $basePath ?>/uploads/avatars/" . htmlspecialchars($row['fotoPerfil'])
+                    : "<?= $basePath ?>/assets/images/logo.png";
                 $portada = !empty($row['urlPortadaAlbum'])
-                    ? '../../public/uploads/portadas/' . htmlspecialchars($row['urlPortadaAlbum'])
+                    ? "<?= $basePath ?>/uploads/portadas/" . htmlspecialchars($row['urlPortadaAlbum'])
                     : 'https://placehold.co/300x100?text=Sin+Portada';
                 
                 ?>
@@ -217,7 +217,7 @@ else {
 
 <!-- JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../../public/assets/js/home.js"></script>
+<script src="<?= $basePath ?>/assets/js/home.js"></script>
 
 </body>
 </html>

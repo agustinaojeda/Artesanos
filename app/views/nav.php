@@ -1,8 +1,7 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) session_start();
 
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
 $conexion = abrirConexion();
 
 
@@ -22,8 +21,8 @@ if ($idUsuario > 0) {
 
 <nav class="navbar navbar-expand-lg sticky-top shadow-sm" style="background-color: #FFFFF0;">
   <div class="container-fluid">
-    <a class="navbar-brand" href="home.php">
-      <img src="../../public/assets/images/logoConLetras.png" alt="Logo" style="height:40px;">
+    <a class="navbar-brand" href="<?= $basePath ?>/home">
+      <img src="<?= $basePath ?>/assets/images/logoConLetras.png" alt="Logo" style="height:40px;">
     </a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuNav">
@@ -35,7 +34,7 @@ if ($idUsuario > 0) {
 
       <!-- Barra de búsqueda -->
     <div class="busqueda-wrapper position-relative mx-auto mt-1" style="max-width:600px;">
-      <form method="GET" action="busqueda.php" class="mx-auto position-relative" id="formBusqueda" style="max-width:100%;">
+      <form method="GET" action="busqueda" class="mx-auto position-relative" id="formBusqueda" style="max-width:100%;">
     
       <!-- Campo de texto -->
       <input type="text" class="form-control buscador" name="query" placeholder="Buscar...">
@@ -56,7 +55,7 @@ if ($idUsuario > 0) {
         <div class="d-flex justify-content-center justify-content-lg-end align-items-center gap-3 ms-lg-3">
           <?php if (!isset($_SESSION['usuario'])): ?>
             <!-- No logueado -->
-            <a href="home.php#registroBl" class="btn follow-btn text-white px-4 rounded-5" role="button">
+            <a href="<?= $basePath ?>/login" class="btn follow-btn text-white px-4 rounded-5" role="button">
               <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
             </a>
           <?php else: ?>
@@ -89,11 +88,11 @@ if ($idUsuario > 0) {
 
             <?php
               //  Incluir helper y obtener avatar
-              require_once dirname(__DIR__) . '/models/usuarioHelper.php';
+              require_once MODEL_PATH . '/usuarioHelper.php';
               $avatarSrc = obtenerAvatar((int)$_SESSION['usuario']['id']);
             ?>
 
-            <a href="perfil.php?id=<?= (int)$_SESSION['usuario']['id'] ?>" class="d-inline-block">
+            <a href="perfil?id=<?= (int)$_SESSION['usuario']['id'] ?>" class="d-inline-block">
               <img src="<?php echo $avatarSrc; ?>" 
                    alt="Perfil" 
                    class="rounded-circle" 
@@ -144,9 +143,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 //  Actualizar numerito de notificaciones
 function actualizarNotificaciones() {
-  fetch('../controllers/notificacionesControl.php')
+  fetch('<?= $basePath ?>/api/notificaciones', { cache: 'no-store' })
     .then(res => res.json())
     .then(data => {
+      console.log(data);
       const badge = document.querySelector('.badge.bg-danger');
       const bell = document.querySelector('.bi-bell').parentElement;
 

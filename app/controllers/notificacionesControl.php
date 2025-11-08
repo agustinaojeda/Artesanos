@@ -1,8 +1,7 @@
 <?php
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
 $conexion = abrirConexion();
-session_start();
 
 $idUsuario = $_SESSION['usuario']['id'] ?? 0;
 

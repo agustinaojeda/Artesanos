@@ -1,6 +1,6 @@
 <?php
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
 $conexion = abrirConexion();
 
 // Obtenemos el correo desde GET

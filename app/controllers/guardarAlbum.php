@@ -4,13 +4,11 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 header('Content-Type: application/json');
 
-
-session_start();
-require_once 'albumControlador.php';
-require_once '../models/albumModelo.php';
-require_once '../models/album.php';
-require_once '../models/imagenModelo.php';
-require_once '../models/imagen.php';
+require_once CTRL_PATH . '/albumControlador.php';
+require_once MODEL_PATH . '/albumModelo.php';
+require_once MODEL_PATH . '/album.php';
+require_once MODEL_PATH . '/imagenModelo.php';
+require_once MODEL_PATH . '/imagen.php';
 
 $controlador = new AlbumCont();
 
@@ -41,8 +39,9 @@ for ($i = 0; $i < $cantidad; $i++) {
 
 function guardarArchivo($archivo, $carpeta)
 {
+    $basePath = $GLOBALS['basePath'];
     $nombre = uniqid() . "_" . basename($archivo['name']);
-    $ruta = "../../public/uploads/$carpeta/" . $nombre;
+    $ruta = $basePath . "/uploads/$carpeta/" . $nombre;
     move_uploaded_file($archivo['tmp_name'], $ruta);
     return $nombre;
 }

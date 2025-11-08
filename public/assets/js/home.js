@@ -687,9 +687,7 @@ if (btnCrearEl) btnCrearEl.addEventListener("click", function (e) {
   formData.append("cantidadImagenes", imagenes.length);
   //envio los datos al controlador
   // ajusta segun la estructura de carpetas
-  const base = window.location.origin;
-  const rutaRaiz = window.location.pathname.split("/app/views")[0]; // todo antes de /app/views
-  const ruta = `${base}${rutaRaiz}/app/controllers/guardarAlbum.php`;
+  const ruta = `${window.BASE_URL}/api/guardar-album`;
 
   fetch(ruta, {
     method: "POST",
@@ -727,7 +725,8 @@ if (btnCrearEl) btnCrearEl.addEventListener("click", function (e) {
         text: "No se pudo conectar con el servidor.",
       });
     });
-  }
+
+
 }); 
 
 function mostrarRegistro() {

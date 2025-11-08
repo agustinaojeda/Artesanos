@@ -1,6 +1,5 @@
 <?php
-session_start();
-require_once '../../config/conexion.php';
+require_once CONFIG_PATH . '/conexion.php';
 $conexion = abrirConexion();
 
 $idUsuarioAlbum = $_SESSION['usuario']['id'];

@@ -1,6 +1,5 @@
 <?php
 // app/views/procesarEdicion.php
-if (session_status() === PHP_SESSION_NONE) session_start();
 
 if (!isset($_SESSION['usuario']['id']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: login.php');
@@ -9,6 +8,7 @@ if (!isset($_SESSION['usuario']['id']) || $_SERVER['REQUEST_METHOD'] !== 'POST')
 
 // conexión (subir 2 niveles hasta la raíz del proyecto)
 require_once dirname(__DIR__, 2) . '/config/conexion.php';
+    
 $conexion = abrirConexion();
 if ($conexion === false || $conexion->connect_error) {
     die("Error de conexión a la base de datos.");

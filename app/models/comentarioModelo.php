@@ -3,8 +3,8 @@
 // Se encarga de consultar e insertar comentarios en la base de datos.
 // No representa un comentario en sí, sino operaciones sobre ellos.
 
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
 include 'usuarioHelper.php';
 
 class ComentarioModelo{

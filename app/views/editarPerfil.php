@@ -1,9 +1,8 @@
 <?php
 // app/views/editarPerfil.php
-if (session_status() === PHP_SESSION_NONE) session_start();
 
 // incluir conexión (ruta robusta)
-require_once dirname(__DIR__, 2) . '/config/conexion.php';
+require_once CONFIG_PATH . '/conexion.php';
 
 // helper
 function e($s)
@@ -50,9 +49,9 @@ $userData['privacidadUsuario'] = $userData['privacidadUsuario'] ?? 'publico';
 
 // determinar url del avatar (para mostrar)
 if (!empty($userData['avatarActual'])) {
-    $avatarUrl = '../../public/uploads/avatars/' . e($userData['avatarActual']);
+    $avatarUrl = "$basePath/uploads/avatars/" . e($userData['avatarActual']);
 } else {
-    $avatarUrl = '../../public/assets/images/imagen.png';
+    $avatarUrl = "$basePath/assets/images/imagen.png";
 }
 
 // si hay errores guardados en sesión, recupéralos
@@ -67,10 +66,10 @@ unset($_SESSION['errors'], $_SESSION['form_data']);
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Artesanos</title>
-    <link rel="icon" href="../../public/assets/images/logo.png" type="image/x-icon">
+    <link rel="icon" href="<?= $basePath ?>/assets/images/logo.png" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" href="../../public/assets/css/nav.css">
+    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/nav.css">
     <style>
         .container {
             max-width: 1000px;

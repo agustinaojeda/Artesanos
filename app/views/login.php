@@ -1,13 +1,14 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-  session_start();
-}
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
+
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
 
 $serverMessage = '';
 $serverMessageType = '';
 $redirScript = '';
+
+$pageTitle = 'Artesanos - Login';
+include VIEW_PATH . '/header.php';
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
   $usuario = trim($_POST['usuario'] ?? '');
@@ -45,7 +46,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       $user = $resultado->fetch_assoc();
 
       if (password_verify($password, $user['contrasenaUsuario'])) {
-        // Guardamos la sesión con el nombre real del archivo de imagen
+        session_regenerate_id(true);
+
         $_SESSION['usuario'] = [
           'id'       => $user['idUsuario'],
           'nombre'   => $user['nombreUsuario'],
@@ -58,18 +60,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $serverMessage = 'Inicio de sesión exitoso. Redirigiendo...';
         $serverMessageType = 'success';
-        $redirScript = "<script>setTimeout(()=>{ window.location.href = 'home.php'; }, 800);</script>";
+        $redirScript = "<script>setTimeout(()=>{ window.location.href = '$basePath/home'; }, 800);</script>";
+
       } else {
-        session_unset();
-        session_destroy();
-        session_start();
+        unset($_SESSION['usuario']);
         $serverMessage = 'Contraseña incorrecta.';
         $serverMessageType = 'danger';
       }
     } else {
-      session_unset();
-      session_destroy();
-      session_start();
+      unset($_SESSION['usuario']);
       $serverMessage = 'Usuario no encontrado.';
       $serverMessageType = 'danger';
     }
@@ -81,7 +80,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 ?>
   <div class="register-container" id="registro">
     <div class="register-logo">
-      <img src="../../public/assets/images/logo.png" alt="Artesanos" width="80">
+      <img src="<?= $basePath ?>/assets/images/logo.png" alt="Artesanos" width="80">
     </div>
 
     <h5>Artesanos</h5>
@@ -95,7 +94,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <?php endif; ?>
 
     <div class="register-box">
-      <form action="login.php" method="POST" id="registroForm" novalidate>
+      <form action="<?= $GLOBALS['basePath'] ?>/login" method="POST" id="registroForm" novalidate>
         <div class="form-group mb-3">
           <input type="text" class="form-control" name="usuario" placeholder="@usuario" required>
           <small class="error-text"></small>
@@ -115,7 +114,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         <div class="button-row">
           <button type="submit" class="btn btn-main w-100 mb-2">Iniciar sesión</button>
-          <button type="button" class="btn btn-outline w-100" onclick="mostrarRegistro()">Quiero registrarme</button>
+          <a type="button" href="<?= $basePath ?>/home#registroBl" class="btn btn-outline w-100" onclick="mostrarRegistro()">Quiero registrarme</a>
         </div>
       </form>
     </div>
@@ -173,5 +172,4 @@ document.getElementById("formRecuperar").addEventListener("submit", async (e) =>
 });
 </script>
 
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<?php include VIEW_PATH . '/footer.php'; ?>

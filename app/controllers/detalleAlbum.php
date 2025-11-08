@@ -4,14 +4,10 @@ ini_set('display_errors', 1);
 
 header('Content-Type: application/json; charset=utf-8');
 
-require_once dirname(__DIR__) . '/models/albumModelo.php';
-require_once dirname(__DIR__) . '/models/imagenModelo.php';
-require_once dirname(__DIR__) . '/models/comentarioModelo.php';
-require_once dirname(__DIR__) . '/models/usuarioHelper.php';
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once MODEL_PATH . '/albumModelo.php';
+require_once MODEL_PATH . '/imagenModelo.php';
+require_once MODEL_PATH . '/comentarioModelo.php';
+require_once MODEL_PATH . '/usuarioHelper.php';
 
 // Validar ID de álbum
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {

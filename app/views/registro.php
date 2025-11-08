@@ -1,7 +1,7 @@
 <?php
 // app/views/registro.php
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
 
 $conexion = abrirConexion();
 
@@ -14,8 +14,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   $apellido = trim($_POST['apellido'] ?? '');
   $usuario = trim($_POST['usuario'] ?? '');
   $apodo = trim($_POST['apodo'] ?? '');
-  $password = $_POST['password'] ?? '';
-  $confirmar = $_POST['confirmar'] ?? '';
+  $password   = $_POST['password'] ?? '';
+  $confirmar  = $_POST['password-confirm'] ?? '';
+  $password  = trim($password);
+  $confirmar = trim($confirmar);
   $email = trim($_POST['email'] ?? '');
 
   // --- Validaciones servidor ---
@@ -69,7 +71,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if ($insert->execute()) {
           $serverMessage = 'Registro exitoso. Redirigiendo al login...';
           $serverMessageType = 'success';
-          $redirScript = "<script>setTimeout(()=>{ window.location.href = 'login.php'; }, 2000);</script>";
+          $redirScript = "<script>setTimeout(()=>{ window.location.href = '/login'; }, 2000);</script>";
         } else {
           $serverMessage = 'Error al registrar: ' . htmlspecialchars($insert->error);
           $serverMessageType = 'danger';
@@ -92,7 +94,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
   
-  <link rel="stylesheet" href="../../public/assets/css/re.css">
+  <link rel="stylesheet" href="<?= $basePath ?>/assets/css/re.css">
 </head>
 <body>
 <?php endif; ?>
@@ -100,7 +102,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <div class="register-container" id="registro">
   <div class="register-logo">
-    <img src="../../public/assets/images/logo.png" alt="Artesanos" width="80">
+    <img src="<?= $basePath ?>/assets/images/logo.png" alt="Artesanos" width="80">
   </div>
 
   <h5>Artesanos</h5>
@@ -136,7 +138,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
           <small class="error-text"></small>
         </div>
       </div>
-
+      <div class="form-single form-group">
+        <input type="email" class="form-control" name="email" placeholder="Correo electrónico" value="<?php echo htmlspecialchars($email ?? '') ?>" required>
+        <small class="error-text"></small>
+      </div>
       <div class="form-row">
         <div class="form-group password-wrapper">
           <input type="password" 
@@ -146,27 +151,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             placeholder="Contraseña" 
             required 
             minlength="6">
-          <i class="bi bi-eye-slash toggle-password" id="togglePassword"></i>
+          <i class="bi bi-eye-slash toggle-password" aria-label="Mostrar/ocultar contraseña" role="button" tabindex="0"></i>
           <small class="error-text"></small>
         </div>
         <div class="form-group password-wrapper">
           <input type="password" 
             class="form-control" 
-            name="confirmar" 
-            id="password" 
+            name="password-confirm" 
+            id="password-confirm" 
             placeholder="Confirmar contraseña" 
             required 
             minlength="6">
-          <i class="bi bi-eye-slash toggle-password" id="togglePassword"></i>
+          <i class="bi bi-eye-slash toggle-password" aria-label="Mostrar/ocultar contraseña" role="button" tabindex="0"></i>
           <small class="error-text"></small>
         </div>
-
       </div>
-
-      <div class="form-single form-group">
-        <input type="email" class="form-control" name="email" placeholder="Correo electrónico" value="<?php echo htmlspecialchars($email ?? '') ?>" required>
-        <small class="error-text"></small>
-      </div>
+      <br>
 
       <button type="button" class="btn btn-outline" onclick="mostrarLogin()">Ya tengo una cuenta</button>
       <button type="submit" class="btn btn-main">Registrarse</button>
@@ -196,26 +196,35 @@ document.addEventListener("DOMContentLoaded", () => {
     let valido = true;
     let mensaje = "";
 
+    if (input.value.trim().length < 3) {
+      valido = false;
+      mensaje = "Debe tener al menos 3 caracteres.";
+    }
+
     if (input.name === "email") {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(input.value.trim())) {
         valido = false;
         mensaje = "Ingrese un correo válido.";
       }
+
     } else if (input.name === "password") {
       if (input.value.length < 6) {
         valido = false;
         mensaje = "La contraseña debe tener al menos 6 caracteres.";
       }
-    } else if (input.name === "confirmar") {
-      const password = form.querySelector("input[name='password']").value;
-      if (input.value !== password) {
+
+    } else if (input.name === "password-confirm") {
+      const confirmVal = input.value;
+      const passwordVal = (document.getElementById("password")?.value || "");
+
+      if (confirmVal.length < 6) {
+        valido = false;
+        mensaje = "La contraseña debe tener al menos 6 caracteres.";
+      } else if (confirmVal.trim() !== passwordVal.trim()) {
         valido = false;
         mensaje = "Las contraseñas no coinciden.";
       }
-    } else if (input.value.trim().length < 3) {
-      valido = false;
-      mensaje = "Debe tener al menos 3 caracteres.";
     }
 
     if (!valido) {
@@ -230,20 +239,31 @@ document.addEventListener("DOMContentLoaded", () => {
     return valido;
   }
 });
+
 </script>
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
-  const togglePassword = document.getElementById("togglePassword");
-  const passwordField = document.getElementById("password");
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".password-wrapper .toggle-password").forEach(icon => {
+    const input = icon.closest(".password-wrapper").querySelector("input");
+    const toggle = () => {
+      const isHidden = input.type === "password";
+      input.type = isHidden ? "text" : "password";
+      icon.classList.toggle("bi-eye-slash", !isHidden);
+      icon.classList.toggle("bi-eye", isHidden);
+      icon.setAttribute("aria-pressed", isHidden ? "true" : "false");
+    };
 
-  togglePassword.addEventListener("click", () => {
-    const type = passwordField.getAttribute("type") === "password" ? "text" : "password";
-    passwordField.setAttribute("type", type);
-    togglePassword.classList.toggle("bi-eye");
-    togglePassword.classList.toggle("bi-eye-slash");
+    icon.addEventListener("click", toggle);
+    icon.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggle();
+      }
+    });
   });
-  });
-  </script>
+
+});
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 <?php if ($esStandalone): ?>
 </body>

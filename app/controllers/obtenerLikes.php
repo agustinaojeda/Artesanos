@@ -1,9 +1,10 @@
 <?php
-include '../models/imagenModelo.php';
-include '../models/albumModelo.php';
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
-if (session_status() === PHP_SESSION_NONE) session_start();
+
+include MODEL_PATH . '/imagenModelo.php';
+include MODEL_PATH . '/albumModelo.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
+
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {

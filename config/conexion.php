@@ -1,5 +1,5 @@
 <?php
-// app/config/conexion.php (CORREGIDO)
+
 function abrirConexion(){
     // Intentar crear la conexión
     $conexion = new mysqli("localhost", "root", "", "artesanos");

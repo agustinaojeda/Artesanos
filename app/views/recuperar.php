@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
 
 $conexion = abrirConexion();
 

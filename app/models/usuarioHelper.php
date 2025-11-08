@@ -5,16 +5,18 @@ if (!function_exists('obtenerAvatar')) {
     /**
      * Devuelve la URL completa del avatar de un usuario.
      * Si no tiene o no existe → devuelve la imagen por defecto.
-     */
+    */
     function obtenerAvatar(int $idUsuario): string {
-        // Rutas relativas
-        $default = '../../public/assets/images/imagen.png';
-        $uploadDir = '../../public/uploads/avatars/';
+        $basePath = $GLOBALS['basePath'] ?? '';
 
-        require_once dirname(__DIR__, 2) . '/config/conexion.php';
+        // Rutas relativas
+        $default = $basePath . '/assets/images/imagen.png';
+        $uploadDir = $basePath . '/uploads/avatars/';
+
+        require_once CONFIG_PATH . '/conexion.php';
         $conn = abrirConexion();
         if ($conn === false) {
-            return $default;
+            return $default; 
         }
 
         $sql = "

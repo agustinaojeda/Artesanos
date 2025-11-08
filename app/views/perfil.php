@@ -1,15 +1,11 @@
 <?php
 // app/views/perfil.php
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 // Incluir conexión (ruta CORREGIDA y robusta)
-require_once dirname(__DIR__, 2) . '/config/conexion.php';
+require_once CONFIG_PATH . '/conexion.php';
 
 // Incluir helper de usuario
-require_once dirname(__DIR__) . '/models/usuarioHelper.php';
+require_once MODEL_PATH . '/usuarioHelper.php';
 
 // Helper de escape
 function e($s)
@@ -188,15 +184,15 @@ $conexion->close();
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Artesanos</title>
-    <link rel="icon" href="../../public/assets/images/logo.png" type="image/x-icon">
+    <link rel="icon" href="<?= $basePath ?>/assets/images/logo.png" type="image/x-icon">
 
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
-    <link rel="stylesheet" href="../../public/assets/css/nav.css">
-    <link rel="stylesheet" href="../../public/assets/css/home.css">
-    <link rel="stylesheet" href="../../public/assets/css/perfil.css">
+    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/nav.css">
+    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/home.css">
+    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/perfil.css">
 
     <style>
         .modal {
@@ -475,7 +471,7 @@ $conexion->close();
 
                     <div class="action-buttons">
                         <?php if ($isOwner): ?>
-                            <a href="editarPerfil.php" class="btn btn-orange-full d-flex align-items-center justify-content-center">
+                            <a href="editarPerfil" class="btn btn-orange-full d-flex align-items-center justify-content-center">
                                 <i class="bi bi-pencil me-2"></i> Editar perfil
                             </a>
 
@@ -505,7 +501,7 @@ $conexion->close();
 
 
                         <?php else: ?>
-                            <a href="login.php" class="btn btn-orange-full d-flex align-items-center justify-content-center">
+                            <a href="login" class="btn btn-orange-full d-flex align-items-center justify-content-center">
                                 <i class="bi bi-person-plus me-2"></i> Seguir
                             </a>
                         <?php endif; ?>
@@ -531,8 +527,8 @@ $conexion->close();
                         <?php foreach ($albums as $album): ?>
                             <?php
                             $coverUrl = $album['urlPortadaAlbum']
-                                ? '../../public/uploads/portadas/' . e($album['urlPortadaAlbum'])
-                                : '../../public/assets/images/imagen.png';
+                                ? "$basePath/uploads/portadas/" . e($album['urlPortadaAlbum'])
+                                : "$basePath/assets/images/imagen.png";
 
                             // ✅ Agregá esta línea
                             $albumDate = new DateTime($album['fechaCreacionAlbum']);
@@ -547,7 +543,7 @@ $conexion->close();
                                         <?= (int)$album['total_imagenes'] ?> imágenes • <?= $albumDate->format('d/m/Y') ?>
                                     </small>
                                     <div class="d-flex gap-1 align-items-center mt-1">
-                                        <img src="../../public/assets/images/like.png"
+                                        <img src="<?= $basePath ?>/assets/images/like.png"
                                              alt="Me gusta"
                                              class="img-fluid btn-like-galeria"
                                              data-idalbum="<?= (int)$album['idAlbum'] ?>"
@@ -573,8 +569,8 @@ $conexion->close();
                         <?php foreach ($likedAlbums as $album): ?>
                             <?php
                                 $coverUrl = $album['urlPortadaAlbum']
-                                    ? '../../public/uploads/portadas/' . e($album['urlPortadaAlbum'])
-                                    : '../../public/assets/images/imagen.png';
+                                    ? "$basePath/uploads/portadas/" . e($album['urlPortadaAlbum'])
+                                    : "$basePath/assets/images/imagen.png";
                                 $albumDate = new DateTime($album['fechaCreacionAlbum']);
                             ?>
                             <div class="album-card" data-id="<?= (int)$album['idAlbum'] ?>" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum">
@@ -585,7 +581,7 @@ $conexion->close();
                                     <h5><?= e($album['nombreAlbum']) ?></h5>
                                     <small class="text-muted"><?= $albumDate->format('d/m/Y') ?></small>
                                     <div class="d-flex gap-1 align-items-center mt-1">
-                                        <img src="../../public/assets/images/like.png"
+                                        <img src="<?= $basePath ?>/assets/images/like.png"
                                              alt="Me gusta"
                                              class="img-fluid btn-like-galeria"
                                              data-idalbum="<?= (int)$album['idAlbum'] ?>"
@@ -607,8 +603,8 @@ $conexion->close();
                         <?php foreach ($likedImages as $img): ?>
                             <?php
                                 $imgUrl = $img['urlImagen']
-                                    ? '../../public/uploads/imagenes/' . e($img['urlImagen'])
-                                    : '../../public/assets/images/imagen.png';
+                                    ? "$basePath/uploads/imagenes/" . e($img['urlImagen'])
+                                    : "$basePath/assets/images/imagen.png";
                             ?>
                             <div class="album-card" data-id="<?= (int)$img['idAlbumImagen'] ?>" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum" title="<?= e($img['tituloImagen'] ?? '') ?>">
                                 <div class="album-img-wrapper">
@@ -618,7 +614,7 @@ $conexion->close();
                                     <h5><?= e($img['tituloImagen'] ?? 'Sin título') ?></h5>
                                     <small class="text-muted">Álbum: <?= e($img['nombreAlbum'] ?? '') ?></small>
                                     <div class="d-flex gap-1 align-items-center mt-1">
-                                        <img src="../../public/assets/images/like.png"
+                                        <img src="<?= $basePath ?>/assets/images/like.png"
                                              alt="Me gusta imagen"
                                              class="img-fluid btn-like-imagen-perfil"
                                              data-idimagen="<?= (int)$img['idImagen'] ?>"
@@ -665,7 +661,7 @@ $conexion->close();
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../public/assets/js/perfil.js"></script>
+    <script src="<?= $basePath ?>/assets/js/perfil.js"></script>
 
     <!-- ====== Pequeño script adicional (solo lo necesario) ======
          Se encarga de actualizar título/descripcion al cambiar slide

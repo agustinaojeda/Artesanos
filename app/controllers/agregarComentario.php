@@ -1,8 +1,8 @@
 <?php
-session_start();
-include '../models/comentarioModelo.php';
-include '../models/usuarioHelper.php';
-include_once '../../config/conexion.php';
+
+include MODEL_PATH . '/comentarioModelo.php';
+include MODEL_PATH . '/usuarioHelper.php';
+require_once CONFIG_PATH . '/conexion.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
 $idUsuario = $_SESSION['usuario']['id'] ?? 0;

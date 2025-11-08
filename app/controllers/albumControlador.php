@@ -4,8 +4,8 @@
 // Recibe solicitudes, llama al modelo correspondiente y devuelve los datos.
 // No contiene lógica de negocio ni acceso directo a la base de datos.
 
-include '../models/albumModelo.php';
-include '../models/imagenModelo.php';
+require_once MODEL_PATH . '/albumModelo.php';
+require_once MODEL_PATH . '/imagenModelo.php';
 
 class AlbumCont{
     private $albumModelo;
