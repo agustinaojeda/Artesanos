@@ -396,6 +396,20 @@ $conexion->close();
             font-weight: 600;
             color: #333;
         }
+        
+        .opciones-album {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 10;
+        }
+
+        .opciones-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            padding: 4px 6px;
+        }
+
     </style>
 </head>
 
@@ -537,26 +551,56 @@ $conexion->close();
                             // ✅ Agregá esta línea
                             $albumDate = new DateTime($album['fechaCreacionAlbum']);
                             ?>
-                            <div class="album-card" data-id="<?= (int)$album['idAlbum'] ?>" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum">
+                            <div class="album-card position-relative" data-id="<?= (int)$album['idAlbum'] ?>">
+
+                            <!-- ✅ Menú de tres puntitos (NO abre el modal) -->
+                            <div class="dropdown opciones-album position-absolute top-0 end-0 m-2">
+                                <button class="btn btn-light btn-sm opciones-btn" data-bs-toggle="dropdown"
+                                        onclick="event.stopPropagation();">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item editar-album" href="#"
+                                        data-id="<?= $album['idAlbum'] ?>"
+                                        onclick="event.stopPropagation();">Editar álbum</a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger eliminar-album" href="#"
+                                        data-id="<?= $album['idAlbum'] ?>"
+                                        onclick="event.stopPropagation();">Eliminar álbum</a>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- ✅ El contenido que SÍ abre el modal -->
+                            <div class="album-content" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum">
+
                                 <div class="album-img-wrapper">
                                     <img src="<?= $coverUrl ?>" alt="Portada de álbum" class="album-img">
                                 </div>
+
                                 <div class="album-info">
                                     <h5><?= e($album['nombreAlbum']) ?></h5>
                                     <small class="text-muted">
                                         <?= (int)$album['total_imagenes'] ?> imágenes • <?= $albumDate->format('d/m/Y') ?>
                                     </small>
+
                                     <div class="d-flex gap-1 align-items-center mt-1">
                                         <img src="../../public/assets/images/like.png"
-                                             alt="Me gusta"
-                                             class="img-fluid btn-like-galeria"
-                                             data-idalbum="<?= (int)$album['idAlbum'] ?>"
-                                             style="max-height: 25px; cursor: pointer;">
+                                            alt="Me gusta"
+                                            class="img-fluid btn-like-galeria"
+                                            data-idalbum="<?= (int)$album['idAlbum'] ?>"
+                                            style="max-height: 25px; cursor: pointer;">
                                         <span id="likes-count-album-<?= (int)$album['idAlbum'] ?>" class="text-muted small align-self-center">0</span>
                                     </div>
                                 </div>
-                            </div>
-                        <?php endforeach; ?>
+
+                            </div> <!-- FIN del div que abre modal -->
+
+                        </div> <!-- FIN del album-card -->
+                    <?php endforeach; ?>
 
                     </div>
 
