@@ -20,7 +20,7 @@ function abrirConexion(): mysqli|false
     ];
 
     $configProd = [
-        'host' => '185.27.134.126',
+        'host' => 'sql300.infinityfree.com',
         'user' => 'if0_40369342',
         'pass' => 'tyVjMGEbb1UxOr',
         'db'   => 'if0_40369342_artesanos',

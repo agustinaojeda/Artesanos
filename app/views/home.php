@@ -7,6 +7,8 @@ $idUsuario = isset($_SESSION['usuario']['id']) ? (int)$_SESSION['usuario']['id']
 $albumes = new AlbumCont();
 $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la bd
 
+$mostrarLogin = isset($_SESSION['mostrarLogin']) && $_SESSION['mostrarLogin'] === true;
+
 $pageTitle = 'Artesanos - Home';
 include VIEW_PATH . '/header.php'; 
 include VIEW_PATH . '/nav.php'; 
@@ -98,13 +100,15 @@ include VIEW_PATH . '/nav.php';
 
   <?php if ($idUsuario == 0): ?>
     <div id="registroBl">
-      <div id="bloqueRegistro">
+      
+      <div id="bloqueRegistro" style="<?php echo $mostrarLogin ? 'display:none;' : 'display:block;'; ?>">
         <?php include 'registro.php'; ?>
       </div>
-      <div id="bloqueLogin" style="display:none;">
+      <div id="bloqueLogin" style="<?php echo $mostrarLogin ? 'display:block;' : 'display:none;'; ?>">
         <?php include 'login.php'; ?>
       </div>
     </div>
+    <?php unset($_SESSION['mostrarLogin']); ?>
 
   <?php else: ?>
     <!-- boton para crear album -->
@@ -202,6 +206,4 @@ include VIEW_PATH . '/nav.php';
 
 
 <script src="<?= $basePath ?>/assets/js/home.js"></script>
-
-<script src="<?= $GLOBALS['basePath'] ?>/assets/js/home.js"></script>
 <?php include VIEW_PATH . '/footer.php'; ?>
