@@ -24,8 +24,7 @@ async function actualizarConteoLikes(idImagen) {
   if (!idImagen) return;
   const countDisplay = document.getElementById("likes-count-display");
   try {
-    const resp = await fetch(
-      `../controllers/obtenerLikes.php?idImagen=${encodeURIComponent(idImagen)}`
+    const resp = await fetch(`${window.BASE_URL}/api/obtenerLikes?idImagen=${encodeURIComponent(idImagen)}`
     );
     const data = await resp.json();
 
@@ -48,7 +47,7 @@ async function actualizarConteoLikes(idImagen) {
 async function actualizarEstadoLikeImagen(idImagen) {
   if (!idImagen) return;
   try {
-    const resp = await fetch(`../controllers/obtenerLikes.php?idImagen=${encodeURIComponent(idImagen)}`);
+    const resp = await fetch(`${window.BASE_URL}/api/obtenerLikes?idImagen=${encodeURIComponent(idImagen)}`);
     const data = await resp.json();
     if (resp.ok && data.totalLikes !== undefined) {
       const mostradorModal = document.getElementById("likes-count-display");
@@ -56,8 +55,8 @@ async function actualizarEstadoLikeImagen(idImagen) {
       const btnLikeModal = document.getElementById("btn-like-imagen");
       if (btnLikeModal) {
         btnLikeModal.src = data.likedByUser
-          ? "../../public/assets/images/likelleno.png"
-          : "../../public/assets/images/like.png";
+          ? `${window.BASE_URL}/assets/images/likelleno.png`
+          : `${window.BASE_URL}/assets/images/like.png`;
       }
     }
   } catch (err) {
@@ -68,9 +67,11 @@ async function actualizarEstadoLikeImagen(idImagen) {
 // Función unificada para manejar el Like/Dislike (Usa megusta.php)
 async function manejarMeGusta(idImagen) {
   if (!idImagen || Number(idImagen) === 0) return null;
+  console.log("funcion megusta");
+  console.log(`${window.BASE_URL}/api/megusta`);
 
   try {
-    const resp = await fetch("../views/megusta.php", {
+    const resp = await fetch(`${window.BASE_URL}/api/megusta`, {
       method: "POST",
       body: new URLSearchParams({ idImagen }),
     });
@@ -78,7 +79,7 @@ async function manejarMeGusta(idImagen) {
     const data = await resp.json();
 
     if (!resp.ok) {
-      console.error("megusta.php respondió error:", data);
+      console.error("megusta respondió error:", data);
       return data;
     }
 
@@ -113,8 +114,8 @@ async function manejarMeGusta(idImagen) {
       if (res && res.accion) {
         btnLikeModal.src =
           res.accion === "like"
-            ? "../../public/assets/images/likelleno.png"
-            : "../../public/assets/images/like.png";
+            ? `${window.BASE_URL}/assets/images/likelleno.png`
+            : `${window.BASE_URL}/assets/images/like.png`;
       }
       return;
     }
@@ -131,7 +132,7 @@ async function manejarMeGusta(idImagen) {
       }
   
       try {
-        const resp = await fetch("../views/megusta.php", {
+        const resp = await fetch(`${window.BASE_URL}/api/megusta`, {
           method: "POST",
           body: new URLSearchParams({ idAlbum }),
         });
@@ -144,9 +145,9 @@ async function manejarMeGusta(idImagen) {
   
           // Cambia el icono si corresponde
           if (data.accion === "like") {
-            btnLikeGaleria.src = "../../public/assets/images/likelleno.png";
+            btnLikeGaleria.src = `${window.BASE_URL}/assets/images/likelleno.png`;
           } else if (data.accion === "dislike") {
-            btnLikeGaleria.src = "../../public/assets/images/like.png";
+            btnLikeGaleria.src = `${window.BASE_URL}/assets/images/like.png`;
           }
         } else {
           console.error("Error al registrar el like:", data.error || "Respuesta inesperada");
@@ -163,14 +164,14 @@ async function manejarMeGusta(idImagen) {
     const idAlbum = el.dataset.idalbum;
     if (!idAlbum) return;
     try {
-      const resp = await fetch(`../controllers/obtenerLikes.php?idAlbum=${encodeURIComponent(idAlbum)}`);
+      const resp = await fetch(`${window.BASE_URL}/api/obtenerLikes?idAlbum=${encodeURIComponent(idAlbum)}`);
       const data = await resp.json();
       if (resp.ok && data.totalLikes !== undefined) {
         const contador = document.getElementById(`likes-count-album-${idAlbum}`);
         if (contador) contador.textContent = data.totalLikes;
         el.src = (data.likedByUser)
-          ? "../../public/assets/images/likelleno.png"
-          : "../../public/assets/images/like.png";
+          ? `${window.BASE_URL}/assets/images/likelleno.png`
+          : `${window.BASE_URL}/assets/images/like.png`;
       }
     } catch (err) {
       console.warn("No se pudieron cargar likes iniciales para", idAlbum, err);

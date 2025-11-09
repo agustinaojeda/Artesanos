@@ -12,7 +12,7 @@ function e($s)
 
 // Verificar sesión
 if (!isset($_SESSION['usuario']['id'])) {
-    header('Location: login.php');
+    header('Location: ' . $basePath . '/login');
     exit;
 }
 
@@ -25,9 +25,8 @@ $usuarioId = (int)$_SESSION['usuario']['id'];
 
 // Obtener datos actuales del usuario
 $sql = "
-    SELECT u.idUsuario, u.nombreUsuario, u.apellidoUsuario, u.apodoUsuario, u.arrobaUsuario,
-       u.correoUsuario, u.idFotoPerfilUsuario, fp.imagenPerfil AS avatarActual
-
+    SELECT u.idUsuario, u.nombreUsuario, u.apellidoUsuario, u.apodoUsuario, u.arrobaUsuario, u.descripcionUsuario, u.privacidadUsuario,
+    u.correoUsuario, u.idFotoPerfilUsuario, fp.imagenPerfil AS avatarActual 
     FROM usuario u
     LEFT JOIN fotosdeperfil fp ON fp.idFotoPerfil = u.idFotoPerfilUsuario
     WHERE u.idUsuario = ? LIMIT 1
@@ -58,53 +57,42 @@ if (!empty($userData['avatarActual'])) {
 $errors = $_SESSION['errors'] ?? [];
 $form_data = $_SESSION['form_data'] ?? [];
 unset($_SESSION['errors'], $_SESSION['form_data']);
+
+include VIEW_PATH . '/header.php'; 
+include VIEW_PATH . '/nav.php'; 
 ?>
-<!doctype html>
-<html lang="es">
 
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Artesanos</title>
-    <link rel="icon" href="<?= $basePath ?>/assets/images/logo.png" type="image/x-icon">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/nav.css">
-    <style>
-        .container {
-            max-width: 1000px;
-        }
+<style>
+.container {
+    max-width: 1000px;
+}
 
-        .avatar-preview {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 4px solid #f7931e;
-        }
+.avatar-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #f7931e;
+}
 
-        @media (max-width:768px) {
-            .form-row {
-                flex-direction: column;
-            }
-        }
+@media (max-width:768px) {
+    .form-row {
+        flex-direction: column;
+    }
+}
 
-        .btn-custom-orange {
-            background-color: #f7931e;
-            border-color: #f7931e;
-            color: #fff;
-        }
+.btn-custom-orange {
+    background-color: #f7931e;
+    border-color: #f7931e;
+    color: #fff;
+}
 
-        .btn-custom-orange:hover {
-            background-color: #e58514;
-            border-color: #e58514;
-            color: #fff;
-        }
-    </style>
-</head>
-
-<body>
-    <?php include 'nav.php'; ?>
+.btn-custom-orange:hover {
+    background-color: #e58514;
+    border-color: #e58514;
+    color: #fff;
+}
+</style>
 
     <div class="container py-5">
         <h2>Editar perfil</h2>
@@ -117,7 +105,7 @@ unset($_SESSION['errors'], $_SESSION['form_data']);
             </div>
         <?php endif; ?>
 
-        <form action="procesarEdicion.php" method="post" enctype="multipart/form-data" novalidate>
+        <form action="procesarEdicion" method="post" enctype="multipart/form-data" novalidate>
             <div class="row g-4">
                 <div class="col-md-4 text-center">
                     <img src="<?= e($avatarUrl) ?>" alt="Avatar" class="avatar-preview mb-3">
@@ -172,8 +160,7 @@ unset($_SESSION['errors'], $_SESSION['form_data']);
 
                     <div class="mb-3">
                         <label class="form-label">Descripción / Biografía</label>
-                        <textarea name="descripcionUsuario" class="form-control"><?= htmlspecialchars(str_replace(["\\r\\n", "\\n", "\\r"], "\n", $userData['descripcionUsuario'])) ?></textarea>
-
+                        <textarea name="descripcionUsuario" class="form-control"><?= e($form_data['descripcionUsuario'] ?? $userData['descripcionUsuario']) ?></textarea>
                     </div>
 
                     <div class="mb-3 row">
@@ -188,7 +175,7 @@ unset($_SESSION['errors'], $_SESSION['form_data']);
                     </div>
 
                     <div class="d-flex gap-2 justify-content-end">
-                        <a href="perfil.php?id=<?= $usuarioId ?>" class="btn btn-secondary">Cancelar</a>
+                        <a href="perfil?id=<?= $usuarioId ?>" class="btn btn-secondary">Cancelar</a>
                         <button type="submit" class="btn btn-custom-orange">Guardar cambios</button>
                     </div>
                 </div>
@@ -196,7 +183,4 @@ unset($_SESSION['errors'], $_SESSION['form_data']);
         </form>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-
-</html>
+<?php include VIEW_PATH . '/footer.php'; ?>

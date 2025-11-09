@@ -18,7 +18,7 @@ $basePath = $GLOBALS['basePath'] ?? '';
   <link rel="stylesheet" href="<?= $basePath ?>/assets/css/nav.css">
   <link rel="stylesheet" href="<?= $basePath ?>/assets/css/re.css">
   <link rel="stylesheet" href="<?= $basePath ?>/assets/css/home.css">
-  <?= var_dump($basePath) ?>
+
   <script>
     window.BASE_URL = "<?= htmlspecialchars($basePath, ENT_QUOTES) ?>"; 
     // Ej: /artesanos/Artesanos_Empanada2.0/public

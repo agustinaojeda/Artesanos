@@ -2,12 +2,11 @@
 // app/views/procesarEdicion.php
 
 if (!isset($_SESSION['usuario']['id']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: login.php');
+    header('Location: ' . $basePath . '/login');
     exit;
 }
 
-// conexión (subir 2 niveles hasta la raíz del proyecto)
-require_once dirname(__DIR__, 2) . '/config/conexion.php';
+require_once CONFIG_PATH . '/conexion.php';
     
 $conexion = abrirConexion();
 if ($conexion === false || $conexion->connect_error) {
@@ -20,7 +19,7 @@ $errors = [];
 // Helper
 function clean_input_db($conexion, $value)
 {
-    return mysqli_real_escape_string($conexion, trim((string)$value));
+    return trim((string)$value); 
 }
 
 // 1) recoger datos
@@ -29,6 +28,7 @@ $apellidoUsuario = clean_input_db($conexion, $_POST['apellidoUsuario'] ?? '');
 $arrobaUsuario = clean_input_db($conexion, $_POST['arrobaUsuario'] ?? '');
 $apodoUsuario = clean_input_db($conexion, $_POST['apodoUsuario'] ?? '');
 $descripcionUsuario = clean_input_db($conexion, $_POST['descripcionUsuario'] ?? '');
+$descripcionUsuario = preg_replace("/\r\n?/", "\n", $descripcionUsuario);
 $correoUsuario = clean_input_db($conexion, $_POST['correoUsuario'] ?? '');
 $privacidadUsuario = clean_input_db($conexion, $_POST['privacidadUsuario'] ?? 'publico');
 
@@ -54,7 +54,7 @@ if ($new_password !== '' && strlen($new_password) < 6) {
 if (!empty($errors)) {
     $_SESSION['errors'] = $errors;
     $_SESSION['form_data'] = $_POST;
-    header('Location: editarPerfil.php');
+    header('Location: ' . $basePath . '/editarPerfil');
     exit;
 }
 
@@ -182,12 +182,12 @@ try {
 
 
     $_SESSION['message'] = "Perfil actualizado correctamente.";
-    header("Location: perfil.php?id={$userId}");
+    header('Location: ' . $basePath . '/perfil?id=' . $userId);
     exit;
 } catch (Exception $ex) {
     $conexion->rollback();
     $_SESSION['errors'] = [$ex->getMessage()];
     $_SESSION['form_data'] = $_POST;
-    header('Location: editarPerfil.php');
+    header('Location: ' . $basePath . '/editarPerfil');
     exit;
 }

@@ -145,7 +145,7 @@ else {
                         <span><?= $totalSeg ?> Seguidores</span> | 
                         <span><?= $totalAlb ?> Álbumes</span>
                     </div>
-                    <a class="verPerfil" href="perfil.php?id=<?= urlencode($row['idUsuario']) ?>">Ver perfil</a>
+                    <a class="verPerfil" href="perfil?id=<?= urlencode($row['idUsuario']) ?>">Ver perfil</a>
                 </div>
             <?php endwhile; ?>
         <?php else: ?>
@@ -156,16 +156,20 @@ else {
                 $apodo = htmlspecialchars($row['apodoUsuario']);
                 $arroba = htmlspecialchars($row['arrobaUsuario']);
                 $foto = !empty($row['fotoPerfil'])
-                    ? "<?= $basePath ?>/uploads/avatars/" . htmlspecialchars($row['fotoPerfil'])
-                    : "<?= $basePath ?>/assets/images/logo.png";
+                    ? $basePath . '/uploads/avatars/' . $row['fotoPerfil']
+                    : $basePath . '/assets/images/logo.png';
                 $portada = !empty($row['urlPortadaAlbum'])
-                    ? "<?= $basePath ?>/uploads/portadas/" . htmlspecialchars($row['urlPortadaAlbum'])
+                    ? $basePath . '/uploads/portadas/' . $row['urlPortadaAlbum']
                     : 'https://placehold.co/300x100?text=Sin+Portada';
                 
                 ?>
                 <div class="tarjeta">
-                    <img class="portadas" style="border-radius: 10px; width: 100%; height: 200px; object-fit: cover; object-position: center;" src="<?= htmlspecialchars($portada) ?>" alt="Portada del álbum">
-                    <img class="avatar" src="<?= $foto ?>" alt="Avatar usuario">
+                    <img class="portadas" style="border-radius: 10px; width: 100%; height: 200px; object-fit: cover; object-position: center;" 
+                        src="<?= htmlspecialchars($portada, ENT_QUOTES) ?>"
+                        alt="Portada del álbum">
+                    <img class="avatar" 
+                        src="<?= htmlspecialchars($foto, ENT_QUOTES) ?>"
+                        alt="Avatar usuario">
                     <h3><?= $titulo ?></h3>
                     <p>de <?= $apodo ?> (@<?= $arroba ?>)</p>
                     <a href="#" 

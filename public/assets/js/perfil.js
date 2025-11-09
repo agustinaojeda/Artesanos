@@ -140,13 +140,13 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
             if (btnLikeModal && idImagen) {
               btnLikeModal.dataset.idimagen = idImagen;
               try {
-                const resp = await fetch(`../controllers/obtenerLikes.php?idImagen=${encodeURIComponent(idImagen)}`);
+                const resp = await fetch(`${window.BASE_URL}/api/obtenerLikes?idImagen=${encodeURIComponent(idImagen)}`);
                 const likeData = await resp.json();
                 if (resp.ok && likeData.totalLikes !== undefined) {
                   if (countModal) countModal.textContent = likeData.totalLikes;
                   btnLikeModal.src = likeData.likedByUser
-                    ? "../../public/assets/images/likelleno.png"
-                    : "../../public/assets/images/like.png";
+                    ? `${window.BASE_URL}/assets/images/likelleno.png`
+                    : `${window.BASE_URL}/assets/images/like.png`;
                 }
               } catch (err) {
                 console.warn("No se pudieron cargar likes en modal para imagen", idImagen, err);
@@ -208,15 +208,15 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
     const idAlbum = el.dataset.idalbum;
     if (!idAlbum) return;
     try {
-      const resp = await fetch(`../controllers/obtenerLikes.php?idAlbum=${encodeURIComponent(idAlbum)}`);
+      const resp = await fetch(`${window.BASE_URL}/api/obtenerLikes?idAlbum=${encodeURIComponent(idAlbum)}`);
       const data = await resp.json();
       if (resp.ok && data.totalLikes !== undefined) {
         // Actualiza el contador adyacente para evitar colisiones de IDs en distintas secciones
         const contador = el.nextElementSibling || el.parentElement?.querySelector(`span[id="likes-count-album-${idAlbum}"]`);
         if (contador) contador.textContent = data.totalLikes;
         el.src = data.likedByUser
-          ? "../../public/assets/images/likelleno.png"
-          : "../../public/assets/images/like.png";
+          ? `${window.BASE_URL}/assets/images/likelleno.png`
+          : `${window.BASE_URL}/assets/images/like.png`;
       }
     } catch (err) {
       console.warn("No se pudieron cargar likes iniciales para álbum", idAlbum, err);
@@ -228,14 +228,14 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
     const idImagen = el.dataset.idimagen;
     if (!idImagen) return;
     try {
-      const resp = await fetch(`../controllers/obtenerLikes.php?idImagen=${encodeURIComponent(idImagen)}`);
+      const resp = await fetch(`${window.BASE_URL}/api/obtenerLikes?idImagen=${encodeURIComponent(idImagen)}`);
       const data = await resp.json();
       if (resp.ok && data.totalLikes !== undefined) {
         const contador = document.getElementById(`likes-count-image-${idImagen}`);
         if (contador) contador.textContent = data.totalLikes;
         el.src = data.likedByUser
-          ? "../../public/assets/images/likelleno.png"
-          : "../../public/assets/images/like.png";
+          ? `${window.BASE_URL}/assets/images/likelleno.png`
+          : `${window.BASE_URL}/assets/images/like.png`;
       }
     } catch (err) {
       console.warn("No se pudieron cargar likes iniciales para imagen", idImagen, err);
@@ -252,7 +252,7 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
       const idImagen = btnLikeModal.dataset.idimagen;
       if (!idImagen) return;
       try {
-        const resp = await fetch("megusta.php", {
+        const resp = await fetch(`${window.BASE_URL}/api/megusta`, {
           method: "POST",
           body: new URLSearchParams({ idImagen })
         });
@@ -261,8 +261,8 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
           const contadorModal = document.getElementById("likes-count-display");
           if (contadorModal) contadorModal.textContent = data.totalLikes;
           btnLikeModal.src = data.accion === "like"
-            ? "../../public/assets/images/likelleno.png"
-            : "../../public/assets/images/like.png";
+            ? `${window.BASE_URL}/assets/images/likelleno.png`
+            : `${window.BASE_URL}/assets/images/like.png`;
         } else {
           console.error("Error al registrar el like de imagen (modal):", data.error || "Respuesta inesperada");
         }
@@ -279,7 +279,7 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
       const idAlbum = btnAlbum.dataset.idalbum;
       if (!idAlbum) return;
       try {
-        const resp = await fetch("megusta.php", {
+        const resp = await fetch(`${window.BASE_URL}/api/megusta`, {
           method: "POST",
           body: new URLSearchParams({ idAlbum })
         });
@@ -288,8 +288,8 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
           const contador = btnAlbum.nextElementSibling || btnAlbum.parentElement?.querySelector(`span[id="likes-count-album-${idAlbum}"]`);
           if (contador) contador.textContent = data.totalLikes;
           btnAlbum.src = data.accion === "like"
-            ? "../../public/assets/images/likelleno.png"
-            : "../../public/assets/images/like.png";
+            ? `${window.BASE_URL}/assets/images/likelleno.png`
+            : `${window.BASE_URL}/assets/images/like.png`;
         } else {
           console.error("Error al registrar el like de álbum:", data.error || "Respuesta inesperada");
         }
@@ -306,7 +306,7 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
       const idImagen = btnImg.dataset.idimagen;
       if (!idImagen) return;
       try {
-        const resp = await fetch("megusta.php", {
+        const resp = await fetch(`${window.BASE_URL}/api/megusta`, {
           method: "POST",
           body: new URLSearchParams({ idImagen })
         });
@@ -315,8 +315,8 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
           const contador = document.getElementById(`likes-count-image-${idImagen}`);
           if (contador) contador.textContent = data.totalLikes;
           btnImg.src = data.accion === "like"
-            ? "../../public/assets/images/likelleno.png"
-            : "../../public/assets/images/like.png";
+            ? `${window.BASE_URL}/assets/images/likelleno.png`
+            : `${window.BASE_URL}/assets/images/like.png`;
         } else {
           console.error("Error al registrar el like de imagen:", data.error || "Respuesta inesperada");
         }

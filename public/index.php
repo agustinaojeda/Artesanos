@@ -66,6 +66,12 @@ try {
         case '/busqueda':
             require VIEW_PATH . '/busqueda.php';
             break;
+        case '/procesarEdicion':
+            require VIEW_PATH . '/procesarEdicion.php';
+            break;
+        case '/cerrarSesion':
+            require VIEW_PATH . '/cerrarSesion.php';
+            break;
         /*
         * example routes:
         * case '/productos':
@@ -76,11 +82,23 @@ try {
         *     break;
         */
         //endpoints api, only return json response 
+        case '/api/listarNotificaciones':
+            require CTRL_PATH . '/listarNotificaciones.php';
+            break;
+        case '/api/responderSolicitud':
+            require CTRL_PATH . '/responderSolicitud.php';
+            break;
         case '/api/notificaciones':
             require CTRL_PATH . '/notificacionesControl.php';
             break;
         case '/api/guardar-album':
             require CTRL_PATH . '/guardarAlbum.php';
+            break;
+        case '/api/obtenerLikes':
+            require CTRL_PATH . '/obtenerLikes.php';
+            break;
+        case '/api/megusta':
+            require VIEW_PATH . '/megusta.php';
             break;
         default:
             http_response_code(404);

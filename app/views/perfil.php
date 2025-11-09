@@ -475,7 +475,7 @@ $conexion->close();
                                 <i class="bi bi-pencil me-2"></i> Editar perfil
                             </a>
 
-                            <form method="POST" action="cerrarSesion.php" style="margin:0;">
+                            <form method="POST" action="cerrarSesion" style="margin:0;">
                                 <button type="submit" class="btn btn-orange-full d-flex align-items-center justify-content-center">
                                     <i class="bi bi-door-open me-2"></i> Cerrar sesión
                                 </button>

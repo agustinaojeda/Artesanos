@@ -175,7 +175,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const modal = document.getElementById('modalNotificaciones');
   if (!modal) return;
   modal.addEventListener('show.bs.modal', () => {
-    fetch('../controllers/listarNotificaciones.php')
+    fetch('<?= $basePath ?>/api/listarNotificaciones')
       .then(res => res.text())
       .then(html => {
         document.getElementById('contenedorNotificaciones').innerHTML = html;
@@ -204,7 +204,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Si se abre, cargamos las notificaciones
     if (!visible) {
-      fetch('../controllers/listarNotificaciones.php')
+      fetch('<?= $basePath ?>/api/listarNotificaciones')
         .then(res => res.text())
         .then(html => dropdown.querySelector('#contenedorNotificaciones').innerHTML = html)
         .catch(() => dropdown.querySelector('#contenedorNotificaciones').innerHTML = 
@@ -229,7 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const idSeguidor = btn.getAttribute('data-idSeguidor');
     const accion = btn.classList.contains('aceptar-seguimiento') ? 'aceptar' : 'rechazar';
 
-    fetch('responderSolicitud.php', {
+    fetch('<?= $basePath ?>/api/responderSolicitud', {
       method: 'POST',
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: `idSeguidor=${idSeguidor}&accion=${accion}`

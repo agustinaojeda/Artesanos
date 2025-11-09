@@ -30,7 +30,7 @@ include VIEW_PATH . '/nav.php';
       echo '<div class="col album-item">
               <a href="#" class="abrir-modal-album" data-id="' . (int)$a->idAlbum . '" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum" style="text-decoration: none; color: inherit;">
                 <div class="card-body">
-                  <img class="card-img-top" style="border-radius: 10px; height: 200px; object-fit: cover;" src="../../public/uploads/portadas/' . $urlPortada . '"/>
+                  <img class="card-img-top" style="border-radius: 10px; height: 200px; object-fit: cover;" src="' . $basePath . '/uploads/portadas/' . $urlPortada . '"/>
                   <div class="d-flex justify-content-between align-items-center mt-2">
                     <h5 class="card-title mb-0">' . $tituloAlbum . '</h5>
                   </div>

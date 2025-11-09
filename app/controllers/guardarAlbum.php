@@ -39,11 +39,34 @@ for ($i = 0; $i < $cantidad; $i++) {
 
 function guardarArchivo($archivo, $carpeta)
 {
-    $basePath = $GLOBALS['basePath'];
-    $nombre = uniqid() . "_" . basename($archivo['name']);
-    $ruta = $basePath . "/uploads/$carpeta/" . $nombre;
-    move_uploaded_file($archivo['tmp_name'], $ruta);
+    // Ruta física a /public (no URL)
+    // En WAMP normalmente: C:\wamp64\www + /artesanos/Artesanos_Empanada2.0/public
+    $publicPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . (isset($GLOBALS['basePath']) ? str_replace('/', DIRECTORY_SEPARATOR, $GLOBALS['basePath']) : '');
+
+    // Directorio destino físico
+    $destDir = $publicPath . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . $carpeta;
+
+    // Asegurar que exista
+    if (!is_dir($destDir)) {
+        mkdir($destDir, 0775, true);
+    }
+
+    // Nombre final (sanitizado básico)
+    $nombreSeguro = preg_replace('/[^A-Za-z0-9_\-\.]+/', '_', basename($archivo['name']));
+    $nombre = uniqid() . '_' . $nombreSeguro;
+
+    $destino = $destDir . DIRECTORY_SEPARATOR . $nombre;
+
+    // Mover y chequear errores
+    if (!is_uploaded_file($archivo['tmp_name']) || !move_uploaded_file($archivo['tmp_name'], $destino)) {
+        // Devolvé un error útil en JSON y cortá
+        echo json_encode(["exito" => false, "mensaje" => "No se pudo guardar el archivo en $destino"]);
+        exit;
+    }
+
+    // Lo que guardás en BD es solo el nombre (tal como hacías)
     return $nombre;
 }
+
 
 echo json_encode(["exito" => true, "mensaje" => "Álbum creado con éxito"]);

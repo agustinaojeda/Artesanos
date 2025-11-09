@@ -16,9 +16,6 @@ if (ini_get("session.use_cookies")) {
 // Finalmente, destruir la sesión.
 session_destroy();
 
-// Redirigir al home (o login.php si es necesario)
-// Si home.php está en la misma carpeta que perfil.php/cerrarSesion.php:
-header('Location: home.php');
-// Si está en la raíz de tu proyecto:
-// header('Location: /proyectos/Artesanos/home.php'); 
+// Redirigir al home (o login si es necesario)
+header('Location: ' . $basePath . '/login');
 exit;

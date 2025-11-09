@@ -61,7 +61,7 @@ if ($result->num_rows > 0) {
 
         // Si es respuesta de seguimiento, agregamos enlace al perfil
         if ($row['tipo'] === 'aceptar_seguimiento') {
-            $perfilUrl = "perfil.php?id=" . $row['idUsuarioAccion'];
+            $perfilUrl = "perfil?id=" . $row['idUsuarioAccion'];
             $mensajeAMostrar .= " <a href='$perfilUrl' class='text-decoration-none'>Ver perfil</a>";
            
         }
