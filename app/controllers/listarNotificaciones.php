@@ -9,7 +9,7 @@ if ($idUsuario === 0) {
     echo '<div class="alert alert-warning">Iniciá sesión para ver tus notificaciones.</div>';
     exit;
 }
-// Falta eliminar notificaciones de seguimiento rechazadas o aceptadas
+
 $sql = "SELECT n.*, u.nombreUsuario, u.arrobaUsuario
         FROM notificaciones n
         JOIN usuario u ON n.idUsuarioAccion = u.idUsuario
@@ -39,7 +39,7 @@ if ($result->num_rows > 0) {
                 $icon = '<i class="bi bi-person-dash-fill text-danger fs-5"></i>';
                 break;
 
-            case 'respuesta_seguimiento': // ← para rechazos (coincide con responderSolicitud.php)
+            case 'respuesta_seguimiento': //  para rechazos (coincide con responderSolicitud.php)
                 $icon = '<i class="bi bi-person-dash-fill text-danger fs-5"></i>';
                 break;
 
@@ -60,7 +60,7 @@ if ($result->num_rows > 0) {
         $mensajeAMostrar = htmlspecialchars($row['mensaje']);
 
         // Si es respuesta de seguimiento, agregamos enlace al perfil
-        if ($row['tipo'] === 'aceptar_seguimiento') {
+        if ($row['tipo'] === 'aceptar_seguimiento' || $row['tipo'] === 'solicitud_seguir') {
             $perfilUrl = "perfil?id=" . $row['idUsuarioAccion'];
             $mensajeAMostrar .= " <a href='$perfilUrl' class='text-decoration-none'>Ver perfil</a>";
            
@@ -80,7 +80,7 @@ if ($result->num_rows > 0) {
             </div>';
 
         // Si es una solicitud, muestra botones
-        if ($row['tipo'] === 'solicitud_seguir' && !$row['leida']) {
+        if ($row['tipo'] === 'solicitud_seguir') {
             echo '
             <div class="ms-auto">
                 <button class="btn btn-success btn-sm aceptar-seguimiento btn-aceptar" data-idSeguidor="' . $row['idUsuarioAccion'] . '">Aceptar</button>
@@ -93,13 +93,13 @@ if ($result->num_rows > 0) {
 
     echo '</div>';
 
-    // Marcar como leídas
+    // marcar como leídas
     $update = $conexion->prepare("UPDATE notificaciones SET leida = 1 WHERE idUsuarioDestino = ?");
     $update->bind_param("i", $idUsuario);
     $update->execute();
 
 } else {
-    echo '<div class="alert alert-secondary text-center">No tenés notificaciones aún 😊</div>';
+    echo '<div class="alert alert-secondary text-center">¡No tenés notificaciones aún!</div>';
 }
 
 cerrarConexion($conexion);

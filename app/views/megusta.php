@@ -1,5 +1,5 @@
 <?php
-// Asegúrate de que tu modelo tenga una función llamada toggleLike($idImagen, $idUsuario)
+
 include MODEL_PATH . '/imagenModelo.php';
 include MODEL_PATH . '/albumModelo.php';
 header('Content-Type: application/json');

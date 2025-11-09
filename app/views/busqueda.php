@@ -9,14 +9,13 @@ $busqueda = trim($_GET['query'] ?? '');
 if (isset($_GET['tipo']) && in_array($_GET['tipo'], ['artesanos', 'albumes'])) {
     $tipo = $_GET['tipo'];
 } else {
-    // Detecta automáticamente el tipo de búsqueda
     if ($busqueda === '') {
-        $tipo = 'artesanos'; // sin texto → mostrar usuarios
+        $tipo = 'artesanos'; // sin texto mostrar usuarios
     } elseif (strpos($busqueda, '@') === 0) {
-        $tipo = 'artesanos'; // si empieza con @ → buscar usuarios
+        $tipo = 'artesanos'; // si empieza con @ buscar usuarios
         $busqueda = substr($busqueda, 1); // quita la arroba para buscar
     } else {
-        $tipo = 'albumes'; // por defecto → buscar álbumes
+        $tipo = 'albumes'; // por defecto buscar álbumes
     }
 }
 
@@ -48,10 +47,10 @@ elseif ($tipo === 'albumes' && $busqueda === '') {
 
 
 elseif ($busqueda !== '') {
-    // Si la búsqueda empieza con "#", quitamos el símbolo
+    
     if (strpos($busqueda, '#') === 0) {
         $busqueda = substr($busqueda, 1);
-        $tipo = 'albumes'; // al buscar por #, forzamos búsqueda en álbumes
+        $tipo = 'albumes'; 
     }
 
     if ($tipo === 'artesanos') {
@@ -191,7 +190,6 @@ else {
 
 <?php cerrarConexion($conexion); ?>
 </main>
-<!-- 🟦 Modal detalle de álbum (copiado desde home.php) -->
 <div class="modal fade" id="modalDetalleAlbum" tabindex="-1" aria-labelledby="modalDetalleAlbumLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered">
     <div class="modal-content p-4">

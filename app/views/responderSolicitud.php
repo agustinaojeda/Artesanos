@@ -19,7 +19,18 @@ $idSeguidor = intval($_POST['idSeguidor']);
 $accion = $_POST['accion'];
 
 
-
+if ($accion === 'aceptar' || $accion === 'rechazar') {
+    $deleteNotif = $conexion->prepare(
+        "DELETE FROM notificaciones 
+     WHERE idUsuarioDestino = ? 
+     AND idUsuarioAccion = ? 
+     AND tipo = 'solicitud_seguir'"
+    );
+    // $idUsuario es quien responde, $idSeguidor es quien envió la solicitud
+    $deleteNotif->bind_param("ii", $idUsuario, $idSeguidor);
+    $deleteNotif->execute();
+    $deleteNotif->close();
+}
 if ($accion === 'aceptar') {
 
     $sql = "UPDATE seguimiento 
@@ -28,9 +39,21 @@ if ($accion === 'aceptar') {
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("ii", $idUsuario, $idSeguidor);
     $stmt->execute();
-    
+
 
     if ($stmt->affected_rows > 0) {
+        //notificacion para el usuario que acepta
+        $mensajeUsuario = "ha comenzado a seguirte";
+        $tipoUsuario = "nuevo_seguimiento"; 
+
+        $notifUsuario = $conexion->prepare(
+            "INSERT INTO notificaciones (idUsuarioDestino, idUsuarioAccion, tipo, mensaje, leida, fecha)
+             VALUES (?, ?, ?, ?, 0, NOW())"
+        );
+        $notifUsuario->bind_param("iiss", $idUsuario, $idSeguidor, $tipoUsuario, $mensajeUsuario);
+        $notifUsuario->execute();
+
+        //notificacion para el usuario que envió la solicitud
         $mensaje = "ha aceptado tu solicitud de seguimiento";
         $tipo = "aceptar_seguimiento";
 
@@ -45,7 +68,6 @@ if ($accion === 'aceptar') {
     } else {
         echo "error:no_encontrado";
     }
-
 } elseif ($accion === 'rechazar') {
 
     $sql = "DELETE FROM seguimiento WHERE idSeguido = ? AND idSeguidor = ? AND estadoSeguimiento = 'pendiente'";
@@ -69,11 +91,10 @@ if ($accion === 'aceptar') {
     } else {
         echo "error:no_encontrado";
     }
-
 } else {
     echo "error:accion_invalida";
 }
 
 
+
 cerrarConexion($conexion);
-?>
