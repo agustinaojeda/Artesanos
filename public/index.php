@@ -72,21 +72,10 @@ try {
         case '/cerrarSesion':
             require VIEW_PATH . '/cerrarSesion.php';
             break;
-        /*
-        * example routes:
-        * case '/productos':
-        *     require $VIEW_PATH . '/productos.php';
-        *     break;
-        * case '/login':
-        *     require $VIEW_PATH . '/login.php';
-        *     break;
-        */
+
         //endpoints api, only return json response 
         case '/api/listarNotificaciones':
             require CTRL_PATH . '/listarNotificaciones.php';
-            break;
-        case '/api/responderSolicitud':
-            require CTRL_PATH . '/responderSolicitud.php';
             break;
         case '/api/notificaciones':
             require CTRL_PATH . '/notificacionesControl.php';
@@ -94,11 +83,32 @@ try {
         case '/api/guardar-album':
             require CTRL_PATH . '/guardarAlbum.php';
             break;
+        case '/api/detalleAlbum':
+            require CTRL_PATH . '/detalleAlbum.php';
+            break;
         case '/api/obtenerLikes':
             require CTRL_PATH . '/obtenerLikes.php';
             break;
+        case '/api/agregarComentario':
+            require CTRL_PATH . '/agregarComentario.php';
+            break;
         case '/api/megusta':
             require VIEW_PATH . '/megusta.php';
+            break;
+        case '/api/responderSolicitud':
+            require VIEW_PATH . '/responderSolicitud.php';
+            break;
+        case '/api/recuperar':
+            require VIEW_PATH . '/recuperar.php';
+            break;
+        case '/api/seguir':
+            require VIEW_PATH . '/seguir.php';
+            break;
+        case '/api/dejarSeguir':
+            require VIEW_PATH . '/dejarSeguir.php';
+            break;
+        case '/api/checkFollowStatus':
+            require VIEW_PATH . '/checkFollowStatus.php';
             break;
         default:
             http_response_code(404);

@@ -41,7 +41,7 @@ if ($accion === 'aceptar') {
         $notif->bind_param("iiss", $idSeguidor, $idUsuario, $tipo, $mensaje);
         $notif->execute();
 
-        echo "activo"; // 👈 para que el botón cambie automáticamente
+        echo "activo";
     } else {
         echo "error:no_encontrado";
     }
@@ -75,8 +75,5 @@ if ($accion === 'aceptar') {
 }
 
 
-
 cerrarConexion($conexion);
 ?>
-
-

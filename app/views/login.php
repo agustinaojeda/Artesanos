@@ -160,7 +160,7 @@ document.getElementById("formRecuperar").addEventListener("submit", async (e) =>
   const form = e.target;
   const data = new FormData(form);
 
-  const response = await fetch("recuperar.php", { method: "POST", body: data });
+  const response = await fetch('<?= $basePath ?>/api/recuperar', { method: "POST", body: data });
   const result = await response.json();
 
   alert(result.message);

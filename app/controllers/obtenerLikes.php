@@ -13,8 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-$idImagen = filter_input(INPUT_GET, 'idImagen', FILTER_VALIDATE_INT);
-$idAlbum  = filter_input(INPUT_GET, 'idAlbum', FILTER_VALIDATE_INT);
+$idImagen = filter_input(INPUT_GET, 'idImagen', FILTER_VALIDATE_INT) ?? null;
+$idAlbum  = filter_input(INPUT_GET, 'idAlbum', FILTER_VALIDATE_INT) ?? null;
 $idUsuario = isset($_SESSION['usuario']['id']) ? (int)$_SESSION['usuario']['id'] : 0;
 
 if (!$idImagen && !$idAlbum) {

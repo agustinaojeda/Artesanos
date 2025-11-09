@@ -184,7 +184,7 @@ document.querySelectorAll(".abrir-modal-album").forEach((el) => {
   el.addEventListener("click", function () {
     let idAlbum = this.getAttribute("data-id");
 
-    fetch(`../controllers/detalleAlbum.php?id=${idAlbum}`)
+    fetch(`${window.BASE_URL}/api/detalleAlbum?id=${idAlbum}`)
       .then((res) => res.json())
       .then((data) => {
         console.log(data);
@@ -256,7 +256,7 @@ document.querySelectorAll(".abrir-modal-album").forEach((el) => {
               let mensaje = inputComentario.value.trim();
               if (!mensaje) return;
 
-              fetch("../controllers/agregarComentario.php", {
+              fetch(`${window.BASE_URL}/api/agregarComentario`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ idImagen, mensaje }),

@@ -172,26 +172,13 @@ if ($stmtLikedImages) {
     $stmtLikedImages->close();
 }
 
-
-
 $conexion->close();
+
+$pageTitle = 'Artesanos - Perfil';
+include VIEW_PATH . '/header.php'; 
+include VIEW_PATH . '/nav.php'; 
+
 ?>
-
-<!DOCTYPE html>
-<html lang="es">
-
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Artesanos</title>
-    <link rel="icon" href="<?= $basePath ?>/assets/images/logo.png" type="image/x-icon">
-
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-
-    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/nav.css">
-    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/home.css">
     <link rel="stylesheet" href="<?= $basePath ?>/assets/css/perfil.css">
 
     <style>
@@ -203,7 +190,6 @@ $conexion->close();
             z-index: 19999 !important;
         }
     </style>
-
 
     <style>
         /* Layout de 5 cajas */
@@ -393,10 +379,7 @@ $conexion->close();
             color: #333;
         }
     </style>
-</head>
 
-<body>
-    <?php include 'nav.php'; ?>
     <div class="modal fade" id="modalDetalleAlbum" tabindex="-1" aria-labelledby="modalDetalleAlbumLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content p-4">
@@ -660,7 +643,6 @@ $conexion->close();
 
 
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script src="<?= $basePath ?>/assets/js/perfil.js"></script>
 
     <!-- ====== Pequeño script adicional (solo lo necesario) ======
@@ -729,6 +711,25 @@ document.addEventListener('DOMContentLoaded', () => {
   /* =====================================================
      🟠 1. ACEPTAR / RECHAZAR SOLICITUD DE SEGUIMIENTO
   ====================================================== */
+    function actualizarBoton(btn, estado) {
+
+        if (!btn) return;
+        btn.classList.remove('btn-orange-full', 'btn-success-full', 'btn-secondary');
+        switch (estado) {
+        case 'siguiendo':
+            btn.classList.add('btn-success-full');
+            btn.innerHTML = '<i class="bi bi-check2 me-2"></i> Siguiendo';
+            break;
+        case 'pendiente':
+            btn.classList.add('btn-secondary');
+            btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Pendiente';
+            break;
+        default:
+            btn.classList.add('btn-orange-full');
+            btn.innerHTML = '<i class="bi bi-person-plus me-2"></i> Seguir';
+        }
+    }
+
   document.querySelectorAll('.aceptar-seguimiento, .rechazar-seguimiento').forEach(btn => {
     btn.addEventListener('click', function() {
       const idSeguidor = this.dataset.id || this.dataset.idseguidor || this.dataset.idSeguidor;
@@ -739,7 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      fetch('responderSolicitud.php', {
+      fetch('<?= $basePath ?>/api/responderSolicitud', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `idSeguidor=${encodeURIComponent(idSeguidor)}&accion=${encodeURIComponent(accion)}`
@@ -749,18 +750,14 @@ document.addEventListener('DOMContentLoaded', () => {
         data = data.trim();
         const followBtn = document.querySelector('#follow-btn');
 
-        if (data === 'aceptado' && followBtn) {
-          followBtn.classList.remove('btn-secondary', 'btn-orange-full');
-          followBtn.classList.add('btn-success-full');
-          followBtn.innerHTML = '<i class="bi bi-check2 me-2"></i> Siguiendo';
+        if (t === 'aceptado' && followBtn) {
+          actualizarBoton(followBtn, 'siguiendo');
           alert("✅ Has aceptado la solicitud. Ahora ambos se siguen.");
-        } else if (data === 'rechazado' && followBtn) {
-          followBtn.classList.remove('btn-secondary', 'btn-success-full');
-          followBtn.classList.add('btn-orange-full');
-          followBtn.innerHTML = '<i class="bi bi-person-plus me-2"></i> Seguir';
+        } else if (t === 'rechazado' && followBtn) {
+          actualizarBoton(followBtn, 'ninguno');
           alert("❌ Has rechazado la solicitud de seguimiento.");
         } else {
-          alert('Ocurrió un error: ' + data);
+          alert('Ocurrió un error: ' + t);
         }
 
         // Eliminar la notificación
@@ -784,26 +781,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const idSeguido = btn.dataset.idSeguido || btn.dataset.idseguido || btn.dataset.id;
     if (!idSeguido) return;
 
-    const actualizarBoton = (estado) => {
-      btn.classList.remove('btn-orange-full', 'btn-success-full', 'btn-secondary');
-      switch (estado) {
-        case 'siguiendo':
-          btn.classList.add('btn-success-full');
-          btn.innerHTML = '<i class="bi bi-check2 me-2"></i> Siguiendo';
-          break;
-        case 'pendiente':
-          btn.classList.add('btn-secondary');
-          btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Pendiente';
-          break;
-        default:
-          btn.classList.add('btn-orange-full');
-          btn.innerHTML = '<i class="bi bi-person-plus me-2"></i> Seguir';
-      }
-    };
-
     // Si ya sigue o está pendiente → dejar de seguir
     if (btn.classList.contains('btn-success-full') || btn.classList.contains('btn-secondary')) {
-      fetch('dejarSeguir.php', {
+      fetch('<?= $basePath ?>/api/dejarSeguir', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `idSeguido=${encodeURIComponent(idSeguido)}`
@@ -811,7 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(res => res.text())
       .then(data => {
         if (data.trim() === 'ok') {
-          actualizarBoton('ninguno');
+          actualizarBoton(btn, 'ninguno');
           btn.dataset.ignoreCheck = "1";
           setTimeout(() => delete btn.dataset.ignoreCheck, 6000);
         } else {
@@ -823,7 +803,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Si no sigue → seguir
-    fetch('seguir.php', {
+    fetch('<?= $basePath ?>/api/seguir', {
       method: 'POST',
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: `idSeguido=${encodeURIComponent(idSeguido)}`
@@ -832,7 +812,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(data => {
       const estado = data.trim();
       if (estado === 'pendiente' || estado === 'siguiendo') {
-        actualizarBoton(estado);
+        actualizarBoton(btn, estado);
       }
     })
     .catch(err => console.error(err));
@@ -848,7 +828,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const idSeguido = btn.dataset.idSeguido || btn.dataset.idseguido || btn.dataset.id;
     if (!idSeguido) return;
 
-    fetch('checkFollowStatus.php', {
+    fetch('<?= $basePath ?>/api/checkFollowStatus', {
       method: 'POST',
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: `idSeguido=${encodeURIComponent(idSeguido)}`
@@ -856,9 +836,9 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(res => res.text())
     .then(status => {
       const estado = status.trim();
-      if (['activo','aceptado'].includes(estado)) actualizarBoton('siguiendo');
-      else if (estado === 'pendiente') actualizarBoton('pendiente');
-      else actualizarBoton('ninguno');
+      if (['activo','aceptado'].includes(estado)) actualizarBoton(btn, 'siguiendo');
+      else if (estado === 'pendiente') actualizarBoton(btn, 'pendiente');
+      else actualizarBoton(btn, 'ninguno');
     })
     .catch(err => console.error(err));
   }, 5000);
@@ -904,7 +884,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 </script>
-
-</body>
-
-</html>
+<?php include VIEW_PATH . '/footer.php'; ?>

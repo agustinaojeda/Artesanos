@@ -63,20 +63,48 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
 }
 
 
+  function joinUrl(base, path) {
+    const b = String(base || '').replace(/\/+$/, '');
+    const p = String(path || '').replace(/^\/+/, '');
+    return `${b}/${p}`;
+  }
 
   document.querySelectorAll(".album-card").forEach((card) => {
     card.addEventListener("click", async () => {
       const albumId = card.dataset.id;
 
-      modalLabel.innerHTML = `<img src='../../public/assets/images/logo.png' width='28' class='me-2'> Cargando álbum...`;
+      modalLabel.innerHTML = `<img src='${window.BASE_URL}/assets/images/logo.png' width='28' class='me-2'> Cargando álbum...`;
       modalBodyIzq.innerHTML = `<p class='text-center py-5'>Cargando imágenes...</p>`;
       modalBodyDer.innerHTML = `<p class='text-center py-5'>Cargando datos...</p>`;
       fotoPerfil.src = "";
 
+      const url = joinUrl(window.BASE_URL, `api/detalleAlbum?id=${encodeURIComponent(albumId)}`);
+
       try {
-        const res = await fetch(`../../app/controllers/detalleAlbum.php?id=${albumId}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const res = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
+        const ctype = res.headers.get('content-type') || '';
+        // Leemos SIEMPRE como texto para inspeccionar si viene HTML
+        const raw = await res.text();
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status} — body: ${raw.slice(0,200)}`);
+        }
+
+        // Parseo seguro a JSON
+        let data;
+        try {
+          data = JSON.parse(raw);
+        } catch (e) {
+          console.error('[detalleAlbum] JSON parse error:', e);
+          // si el body empieza con <, probablemente es HTML de error o login
+          if (raw.trim().startsWith('<')) {
+            console.warn('[detalleAlbum] Parece HTML. ¿PHP tiró warnings? ¿Redirigió al login?');
+          }
+          modalLabel.textContent = "Error de formato";
+          modalBodyIzq.innerHTML = `<pre class="p-3 text-danger" style="white-space:pre-wrap; max-height:300px; overflow:auto;">${raw.slice(0,1000)}</pre>`;
+          modalBodyDer.innerHTML = "";
+          return;
+        }
 
         if (data.error) {
           modalBodyIzq.innerHTML = `<p class='text-danger text-center py-5'>${data.error}</p>`;
@@ -160,7 +188,7 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
               const mensaje = inputComentario.value.trim();
               if (!mensaje) return;
 
-              fetch("../../app/controllers/agregarComentario.php", {
+              fetch(`${window.BASE_URL}/api/agregarComentario`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ idImagen, mensaje }),
@@ -208,7 +236,7 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
     const idAlbum = el.dataset.idalbum;
     if (!idAlbum) return;
     try {
-      const resp = await fetch(`${window.BASE_URL}/api/obtenerLikes?idAlbum=${encodeURIComponent(idAlbum)}`);
+      const resp = await fetch(`${window.BASE_URL}/api/obtenerLikes?idAlbum=${idAlbum}`);
       const data = await resp.json();
       if (resp.ok && data.totalLikes !== undefined) {
         // Actualiza el contador adyacente para evitar colisiones de IDs en distintas secciones

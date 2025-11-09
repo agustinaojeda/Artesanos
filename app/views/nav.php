@@ -146,7 +146,7 @@ function actualizarNotificaciones() {
   fetch('<?= $basePath ?>/api/notificaciones', { cache: 'no-store' })
     .then(res => res.json())
     .then(data => {
-      console.log(data);
+
       const badge = document.querySelector('.badge.bg-danger');
       const bell = document.querySelector('.bi-bell').parentElement;
 

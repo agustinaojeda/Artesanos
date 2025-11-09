@@ -9,7 +9,7 @@ if ($idUsuario === 0) {
     echo '<div class="alert alert-warning">Iniciá sesión para ver tus notificaciones.</div>';
     exit;
 }
-
+// Falta eliminar notificaciones de seguimiento rechazadas o aceptadas
 $sql = "SELECT n.*, u.nombreUsuario, u.arrobaUsuario
         FROM notificaciones n
         JOIN usuario u ON n.idUsuarioAccion = u.idUsuario
@@ -79,8 +79,8 @@ if ($result->num_rows > 0) {
                 <div class="text-muted small mt-1">' . date("d/m/Y H:i", strtotime($row['fecha'])) . '</div>
             </div>';
 
-        // 🔹 Si es una solicitud, muestra botones
-        if ($row['tipo'] === 'solicitud_seguir') {
+        // Si es una solicitud, muestra botones
+        if ($row['tipo'] === 'solicitud_seguir' && !$row['leida']) {
             echo '
             <div class="ms-auto">
                 <button class="btn btn-success btn-sm aceptar-seguimiento btn-aceptar" data-idSeguidor="' . $row['idUsuarioAccion'] . '">Aceptar</button>
@@ -93,7 +93,7 @@ if ($result->num_rows > 0) {
 
     echo '</div>';
 
-    // ✅ Marcar como leídas
+    // Marcar como leídas
     $update = $conexion->prepare("UPDATE notificaciones SET leida = 1 WHERE idUsuarioDestino = ?");
     $update->bind_param("i", $idUsuario);
     $update->execute();

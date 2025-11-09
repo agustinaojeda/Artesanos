@@ -90,7 +90,7 @@ if (!empty($imagenes)) {
                   : (strtotime($album->fechaCreacion) * 1000)
               ) . '">
             <div style="width: 100%; max-width: 500px; aspect-ratio: 1 / 1; overflow: hidden; margin: auto;">
-                <img src="../../public/uploads/imagenes/' . htmlspecialchars($img['urlImagen'] ?? 'sin-imagen.png') . '" 
+                <img src="' . $basePath . '/uploads/imagenes/' . htmlspecialchars($img['urlImagen'] ?? 'sin-imagen.png') . '" 
                      class="w-100 h-100" style="object-fit: contain;">
             </div>
           </div>';
@@ -118,7 +118,7 @@ $htmlIzquierda .= '
 // Iconos de interacción
 $htmlIzquierda .= '
 <div class="d-flex align-items-center mb-3 gap-2">
-    <img src="../../public/assets/images/like.png" 
+    <img src="' . $basePath . '/assets/images/like.png" 
         alt="Me gusta" 
         id="btn-like-imagen" 
         data-idimagen="' . ($imagenes[0]['idImagen'] ?? 0) . '"
@@ -128,7 +128,7 @@ $htmlIzquierda .= '
     <span id="likes-count-display" class="text-muted small align-self-center me-3">0</span>
 
     <a href="#formularioComentario" class="d-flex align-items-center text-decoration-none text-dark">
-        <img src="../../public/assets/images/comentario.png" 
+        <img src="' . $basePath . '/assets/images/comentario.png" 
             alt="Comentario" 
             class="img-fluid" 
             style="max-height: 27px; cursor: pointer;">

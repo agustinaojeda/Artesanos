@@ -33,32 +33,43 @@ class ImagenModelo
     public function mostrarPorAlbum(Album $a)
     {
         $conexion = abrirConexion();
+        if (!$conexion) {
+            error_log('[mostrarPorAlbum] No se pudo abrir conexión');
+            return false;
+        }
 
         $idAlbum = (int)$a->idAlbum;
 
-        $consulta = "SELECT * FROM imagen WHERE idAlbumImagen = $idAlbum ORDER BY idImagen DESC;";
+        $consulta = "SELECT * 
+                    FROM imagen 
+                    WHERE idAlbumImagen = $idAlbum 
+                    ORDER BY idImagen DESC";
+
         $resultado = mysqli_query($conexion, $consulta);
+        if ($resultado === false) {
+            // Error SQL
+            error_log('[mostrarPorAlbum] SQL error: ' . mysqli_error($conexion));
+            cerrarConexion($conexion);
+            return false;
+        }
 
         $imagenes = [];
         if (mysqli_num_rows($resultado) > 0) {
             while ($fila = mysqli_fetch_assoc($resultado)) {
-                $imagen = [
-                    'idImagen' => $fila['idImagen'],
-                    'tituloImagen' => $fila['tituloImagen'],
-                    'descripcionImagen' => $fila['descripcionImagen'],
-                    'etiquetaImagen' => $fila['etiquetaImagen'],
-                    'fechaImagen' => $fila['fechaImagen'],
-                    'urlImagen' => $fila['urlImagen'],
-                    'idAlbumImagen' => $fila['idAlbumImagen']
+                $imagenes[] = [
+                    'idImagen'        => $fila['idImagen'],
+                    'tituloImagen'    => $fila['tituloImagen'],
+                    'descripcionImagen'=> $fila['descripcionImagen'],
+                    'etiquetaImagen'  => $fila['etiquetaImagen'],
+                    'fechaImagen'     => $fila['fechaImagen'],
+                    'urlImagen'       => $fila['urlImagen'],
+                    'idAlbumImagen'   => $fila['idAlbumImagen'],
                 ];
-                $imagenes[] = $imagen;
             }
-            cerrarConexion($conexion);
-            return $imagenes;
-        } else {
-            cerrarConexion($conexion); //si hubo errores o no hay imagenes devuelve falso
-            return false;
         }
+
+        cerrarConexion($conexion);
+        return $imagenes; // [] si no hay imágenes
     }
     // ... después de la llave de cierre de mostrarPorAlbum()...
 
