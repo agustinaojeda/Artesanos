@@ -51,7 +51,7 @@ function guardarArchivo($archivo, $carpeta)
         mkdir($destDir, 0775, true);
     }
 
-    // Nombre final (sanitizado básico)
+    // Nombre final 
     $nombreSeguro = preg_replace('/[^A-Za-z0-9_\-\.]+/', '_', basename($archivo['name']));
     $nombre = uniqid() . '_' . $nombreSeguro;
 
@@ -59,12 +59,11 @@ function guardarArchivo($archivo, $carpeta)
 
     // Mover y chequear errores
     if (!is_uploaded_file($archivo['tmp_name']) || !move_uploaded_file($archivo['tmp_name'], $destino)) {
-        // Devolvé un error útil en JSON y cortá
+        
         echo json_encode(["exito" => false, "mensaje" => "No se pudo guardar el archivo en $destino"]);
         exit;
     }
 
-    // Lo que guardás en BD es solo el nombre (tal como hacías)
     return $nombre;
 }
 

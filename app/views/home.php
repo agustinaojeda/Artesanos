@@ -1,7 +1,6 @@
 <?php
 require_once CTRL_PATH . '/albumControlador.php'; 
 
-// home.php (Línea 7 - CORREGIDO)
 $idUsuario = isset($_SESSION['usuario']['id']) ? (int)$_SESSION['usuario']['id'] : 0;
 
 $albumes = new AlbumCont();
@@ -21,8 +20,7 @@ include VIEW_PATH . '/nav.php';
 
   if (!empty($albumes) && count($albumes) > 0) {
     foreach ($albumes as $a) {
-      // Si necesitas portada de imagen, la sig línea la puedes seguir usando para mostrar la imagen,
-      // pero el like del Home será por álbum, no por imagen.
+
       $idImagenPortada = isset($a->idImagenPortada) ? (int)$a->idImagenPortada : (int)$a->idAlbum;
       $urlPortada = htmlspecialchars($a->urlPortada);
       $tituloAlbum = htmlspecialchars($a->tituloAlbum);

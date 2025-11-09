@@ -20,7 +20,7 @@ require_once MODEL_PATH . '/albumModelo.php';
 
 $albumModelo = new AlbumModelo();
 
-// ✅ Se verifica que el álbum pertenezca al usuario
+// Se verifica que el álbum pertenezca al usuario
 if (!$albumModelo->esPropietarioDelAlbum($idAlbum, $idUsuario)) {
     echo json_encode(["success" => false, "message" => "No tienes permiso para eliminar este álbum"]);
     exit;

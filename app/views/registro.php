@@ -1,5 +1,4 @@
 <?php
-// app/views/registro.php
 require_once CONFIG_PATH . '/conexion.php';
 require_once CONFIG_PATH . '/cerrarConexion.php';
 

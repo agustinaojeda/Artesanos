@@ -1,6 +1,4 @@
 <?php
-// app/views/editarPerfil.php
-
 // incluir conexión (ruta robusta)
 require_once CONFIG_PATH . '/conexion.php';
 

@@ -14,14 +14,14 @@ $basePath = $GLOBALS['basePath'] ?? '';
   <!-- Bootstrap Icons (necesario para las clases .bi ...) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
-  <!-- Tus estilos -->
+  <!-- Estilos Propios -->
   <link rel="stylesheet" href="<?= $basePath ?>/assets/css/nav.css">
   <link rel="stylesheet" href="<?= $basePath ?>/assets/css/re.css">
   <link rel="stylesheet" href="<?= $basePath ?>/assets/css/home.css">
 
   <script>
     window.BASE_URL = "<?= htmlspecialchars($basePath, ENT_QUOTES) ?>"; 
-    // Ej: /artesanos/Artesanos_Empanada2.0/public
+    
   </script>
 
 </head>
