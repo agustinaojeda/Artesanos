@@ -378,6 +378,20 @@ include VIEW_PATH . '/nav.php';
             font-weight: 600;
             color: #333;
         }
+        
+        .opciones-album {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 10;
+        }
+
+        .opciones-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            padding: 4px 6px;
+        }
+
     </style>
 
     <div class="modal fade" id="modalDetalleAlbum" tabindex="-1" aria-labelledby="modalDetalleAlbumLabel" aria-hidden="true">
@@ -513,10 +527,35 @@ include VIEW_PATH . '/nav.php';
                                 ? "$basePath/uploads/portadas/" . e($album['urlPortadaAlbum'])
                                 : "$basePath/assets/images/imagen.png";
 
-                            // ✅ Agregá esta línea
+                            //  Agregá esta línea
                             $albumDate = new DateTime($album['fechaCreacionAlbum']);
                             ?>
-                            <div class="album-card" data-id="<?= (int)$album['idAlbum'] ?>" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum">
+                            <div class="album-card position-relative" data-id="<?= (int)$album['idAlbum'] ?>">
+
+                            <!--  Menú de tres puntitos (NO abre el modal) -->
+                            <div class="dropdown opciones-album position-absolute top-0 end-0 m-2">
+                                <button class="btn btn-light btn-sm opciones-btn" data-bs-toggle="dropdown"
+                                        onclick="event.stopPropagation();">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item editar-album" href="#"
+                                        data-id="<?= $album['idAlbum'] ?>"
+                                        onclick="event.stopPropagation();">Editar álbum</a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger eliminar-album" href="#"
+                                        data-id="<?= $album['idAlbum'] ?>"
+                                        onclick="event.stopPropagation();">Eliminar álbum</a>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- El contenido que abre el modal -->
+                            <div class="album-content" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum">
+
                                 <div class="album-img-wrapper">
                                     <img src="<?= $coverUrl ?>" alt="Portada de álbum" class="album-img">
                                 </div>
@@ -534,8 +573,11 @@ include VIEW_PATH . '/nav.php';
                                         <span id="likes-count-album-<?= (int)$album['idAlbum'] ?>" class="text-muted small align-self-center">0</span>
                                     </div>
                                 </div>
-                            </div>
-                        <?php endforeach; ?>
+
+                            </div> <!-- FIN del div que abre modal -->
+
+                        </div> <!-- FIN del album-card -->
+                    <?php endforeach; ?>
 
                     </div>
 
@@ -645,7 +687,7 @@ include VIEW_PATH . '/nav.php';
     <!-- Bootstrap JS -->
     <script src="<?= $basePath ?>/assets/js/perfil.js"></script>
 
-    <!-- ====== Pequeño script adicional (solo lo necesario) ======
+    <!-- ====== Pequeño script adicional ======
          Se encarga de actualizar título/descripcion al cambiar slide
          y de re-ligar el evento cuando se abre el modal.
          No modifica nada más del comportamiento actual.
@@ -709,7 +751,7 @@ include VIEW_PATH . '/nav.php';
 document.addEventListener('DOMContentLoaded', () => {
 
   /* =====================================================
-     🟠 1. ACEPTAR / RECHAZAR SOLICITUD DE SEGUIMIENTO
+      1. ACEPTAR / RECHAZAR SOLICITUD DE SEGUIMIENTO
   ====================================================== */
     function actualizarBoton(btn, estado) {
 
@@ -752,12 +794,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (t === 'aceptado' && followBtn) {
           actualizarBoton(followBtn, 'siguiendo');
-          alert("✅ Has aceptado la solicitud. Ahora ambos se siguen.");
+          alert(" Has aceptado la solicitud. Ahora ambos se siguen.");
         } else if (t === 'rechazado' && followBtn) {
           actualizarBoton(followBtn, 'ninguno');
           alert("❌ Has rechazado la solicitud de seguimiento.");
         } else {
-          alert('Ocurrió un error: ' + t);
+          alert('Ocurrió un error: ' + data);
         }
 
         // Eliminar la notificación
@@ -766,13 +808,13 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .catch(err => {
         console.error(err);
-        alert("⚠️ Error de red. Intenta nuevamente.");
+        alert(" Error de red. Intenta nuevamente.");
       });
     });
   });
 
   /* =====================================================
-     🟢 2. BOTÓN SEGUIR / DEJAR DE SEGUIR
+      2. BOTÓN SEGUIR / DEJAR DE SEGUIR
   ====================================================== */
   document.addEventListener('click', function(e) {
     const btn = e.target.closest('#follow-btn');
