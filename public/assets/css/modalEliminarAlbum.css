@@ -1,0 +1,74 @@
+/* Efecto boton de editar y eliminar album */
+.dropdown-item {
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f2f2f2; 
+    color: #000 !important;
+}
+
+.dropdown-item.text-danger:hover {
+    background-color: #ffe6e6; 
+    color: #dc3545 !important; 
+}
+
+.modal-exito-eliminar {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-exito-contenido {
+  background: #fff;
+  padding: 40px 50px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  font-family: "Poppins", sans-serif;
+  animation: popIn 0.4s ease;
+}
+
+.icono-check {
+  width: 80px;
+  height: 80px;
+  border: 3px solid #3cb878;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px auto;
+}
+
+.icono-check i {
+  color: #3cb878;
+  font-size: 48px;
+}
+
+.modal-exito-contenido h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.modal-exito-contenido p {
+  font-size: 15px;
+  color: #666;
+  margin: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

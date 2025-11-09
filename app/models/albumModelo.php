@@ -51,6 +51,7 @@ class AlbumModelo
             $insertId = (int) mysqli_insert_id($conexion);
             $album->idAlbum = $insertId; 
             $this->agregarDatosUsuario($album);
+            $this->enviarNotificacion($album->idAlbum,$idUsuario);
         }
 
         cerrarConexion($conexion);
@@ -58,7 +59,34 @@ class AlbumModelo
         // si pudo crear el album retorna el id para poder usarlo en imagen
         return $resultado ? $insertId : false;
     }
+   public function enviarNotificacion($idAlbum, $idUsuarioAlbum){
+    $conexion = abrirConexion();
+    $sqlTitulo = "SELECT tituloAlbum FROM album WHERE idAlbum = ?"; // Obtener el título del álbum
+    $stmt1 = $conexion->prepare($sqlTitulo);
+    $stmt1->bind_param("i", $idAlbum);
+    $stmt1->execute();
+    $tituloAlbum = $stmt1->get_result()->fetch_assoc()['tituloAlbum'];
+    $stmt1->close();
 
+    $sqlSeguidores = "SELECT idSeguidor FROM seguimiento WHERE idSeguido = ? AND estadoSeguimiento = 'activo'";
+    $stmt2 = $conexion->prepare($sqlSeguidores);
+    $stmt2->bind_param("i", $idUsuarioAlbum);
+    $stmt2->execute();
+    $result = $stmt2->get_result();
+    $mensaje = "creó el nuevo álbum '$tituloAlbum'.";
+    $tipo = "album_nuevo";
+
+    while ($row = $result->fetch_assoc()) {
+        $idSeguidor = $row['idSeguidor'];
+        $sqlNotif = "INSERT INTO notificaciones (idUsuarioDestino, idUsuarioAccion, tipo, mensaje, leida, fecha)
+                     VALUES (?, ?, ?, ?, 0, NOW())";
+        $stmt3 = $conexion->prepare($sqlNotif);
+        $stmt3->bind_param("iiss", $idSeguidor, $idUsuarioAlbum, $tipo, $mensaje);
+        $stmt3->execute();
+    }
+    cerrarConexion($conexion);
+
+} 
     public function mostrarTodos()
     { //devuelve todos los albumes publicos y privados
         $conexion = abrirConexion();
@@ -262,5 +290,37 @@ class AlbumModelo
         cerrarConexion($conexion);
         return $total;
     }
-}
+        public function esPropietarioDelAlbum($idAlbum, $idUsuario) {
+        $conexion = abrirConexion();
 
+        $sql = "SELECT COUNT(*) FROM album WHERE idAlbum = ? AND idUsuarioAlbum = ?";
+        $stmt = $conexion->prepare($sql);
+        $stmt->bind_param("ii", $idAlbum, $idUsuario);
+        $stmt->execute();
+        $stmt->bind_result($count);
+        $stmt->fetch();
+        cerrarConexion($conexion);
+
+        return $count > 0;
+    }
+
+    public function eliminarAlbum($idAlbum) {
+        $conexion = abrirConexion();
+
+        // Antes de eliminar álbum, eliminamos sus imágenes
+        $sqlImgs = "DELETE FROM imagen WHERE idAlbumImagen = ?";
+        $stmtImgs = $conexion->prepare($sqlImgs);
+        $stmtImgs->bind_param("i", $idAlbum);
+        $stmtImgs->execute();
+
+        // Ahora sí eliminamos el álbum
+        $sql = "DELETE FROM album WHERE idAlbum = ?";
+        $stmt = $conexion->prepare($sql);
+        $stmt->bind_param("i", $idAlbum);
+        $ok = $stmt->execute();
+
+        cerrarConexion($conexion);
+        return $ok;
+    }
+
+}

@@ -86,6 +86,9 @@ try {
         case '/api/detalleAlbum':
             require CTRL_PATH . '/detalleAlbum.php';
             break;
+        case '/api/eliminarAlbum':
+            require CTRL_PATH . '/eliminarAlbum.php';
+            break;
         case '/api/obtenerLikes':
             require CTRL_PATH . '/obtenerLikes.php';
             break;
