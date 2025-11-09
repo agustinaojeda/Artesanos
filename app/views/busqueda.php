@@ -96,26 +96,13 @@ elseif ($busqueda !== '') {
 else {
     $resultado = false;
 }
+
+$pageTitle = 'Artesanos - Resultados de búsqueda';
+include VIEW_PATH . '/header.php'; 
+include VIEW_PATH . '/nav.php'; 
 ?>
 
-
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Resultados de búsqueda</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-
-    <!-- CSS personalizado -->
-    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/nav.css">
-    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/buscar.css">
-    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/home.css">
-</head>
-<body>
-
-<?php include 'nav.php'; ?> 
-
+<link rel="stylesheet" href="<?= $basePath ?>/assets/css/buscar.css">
 <main class="contenedor">
 <?php if ($resultado && $resultado->num_rows > 0): ?>
     <div class="grid">
@@ -217,11 +204,6 @@ else {
   </div>
 </div>
 
-<!-- JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
 <script src="<?= $basePath ?>/assets/js/home.js"></script>
-
-</body>
-</html>
-
-
+<?php include VIEW_PATH . '/footer.php'; ?>

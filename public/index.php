@@ -72,6 +72,9 @@ try {
         case '/cerrarSesion':
             require VIEW_PATH . '/cerrarSesion.php';
             break;
+        case '/actualizarContrasena':
+            require VIEW_PATH . '/actualizarContrasena.php';
+            break;
 
         //endpoints api, only return json response 
         case '/api/listarNotificaciones':

@@ -20,7 +20,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       $response = [
         "status" => "success",
         "message" => "Se ha enviado un correo con el enlace para restablecer la contraseña (simulado).",
-        "redirect" => "actualizarContrasena.php?correo=" . urlencode($correo)
+        "redirect" => "$basePath/actualizarContrasena?correo=" . urlencode($correo)
       ];
     } else {
       $response = [
