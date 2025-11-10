@@ -1175,17 +1175,17 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(res => res.text())
       .then(data => {
-        data = data.trim();
+        const respuesta = data.trim();
         const followBtn = document.querySelector('#follow-btn');
 
-        if (t === 'aceptado' && followBtn) {
+        if (respuesta === 'activo' && followBtn) {
           actualizarBoton(followBtn, 'siguiendo');
           alert(" Has aceptado la solicitud. Ahora ambos se siguen.");
-        } else if (t === 'rechazado' && followBtn) {
+        } else if (respuesta === 'rechazado' && followBtn) {
           actualizarBoton(followBtn, 'ninguno');
           alert("❌ Has rechazado la solicitud de seguimiento.");
         } else {
-          alert('Ocurrió un error: ' + data);
+          alert('Ocurrió un error: ' + respuesta);
         }
 
         // Eliminar la notificación

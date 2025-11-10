@@ -140,6 +140,18 @@ try {
         case '/api/detalleLikesUsuario':
             require CTRL_PATH . '/detalleLikesUsuario.php';
             break;
+        case '/api/historialFotosPerfil':
+            require CTRL_PATH . '/historialFotosPerfil.php';
+            break;
+        case '/api/detalleFotoHistorial':
+            require CTRL_PATH . '/detalleFotoHistorial.php';
+            break;
+        case '/api/eliminarFotoPerfil':
+            require CTRL_PATH . '/eliminarFotoPerfil.php';
+            break;
+        case '/api/eliminarFotoHistorial':
+            require CTRL_PATH . '/eliminarFotoHistorial.php';
+            break;
         default:
             http_response_code(404);
             echo '404 Not Found';
