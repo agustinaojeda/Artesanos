@@ -110,12 +110,50 @@ class ImagenModelo
              throw new Exception("Error al procesar el like en la BD: " . mysqli_error($conexion));
         }
 
+        // Enviar notificación cuando se da like (no cuando se quita)
+        if ($accion === 'like') {
+            $this->enviarNotificacionLikeFoto($idImagen, $idUsuario, $conexion);
+        }
+
         // 2. Obtener el nuevo conteo de likes
         $totalLikes = $this->contarLikes($idImagen, $conexion); 
 
         // 3. Cerrar conexión y devolver resultado
         cerrarConexion($conexion);
         return ['accion' => $accion, 'totalLikes' => $totalLikes];
+    }
+
+    private function enviarNotificacionLikeFoto(int $idImagen, int $idUsuarioLike, $conexion)
+    {
+        // Obtener el álbum al que pertenece la foto y el propietario del álbum
+        $sqlFoto = "SELECT a.idUsuarioAlbum, a.tituloAlbum 
+                    FROM album a
+                    JOIN imagen i ON i.idAlbumImagen = a.idAlbum
+                    WHERE i.idImagen = ?";
+        $stmt1 = $conexion->prepare($sqlFoto);
+        $stmt1->bind_param("i", $idImagen);
+        $stmt1->execute();
+        $result = $stmt1->get_result();
+        $row = $result->fetch_assoc();
+        $stmt1->close();
+
+        if ($row) {
+            $idUsuarioDestino = $row['idUsuarioAlbum'];
+            $tituloAlbum = $row['tituloAlbum'];
+
+            // Solo enviar notificación si el usuario que da like no es el propietario del álbum
+            if ($idUsuarioDestino != $idUsuarioLike) {
+                $mensaje = "le dio like a una foto de tu álbum '$tituloAlbum'";
+                $tipo = "like";
+
+                $sqlNotif = "INSERT INTO notificaciones (idUsuarioDestino, idUsuarioAccion, tipo, mensaje, leida, fecha)
+                             VALUES (?, ?, ?, ?, 0, NOW())";
+                $stmt2 = $conexion->prepare($sqlNotif);
+                $stmt2->bind_param("iiss", $idUsuarioDestino, $idUsuarioLike, $tipo, $mensaje);
+                $stmt2->execute();
+                $stmt2->close();
+            }
+        }
     }
 
     /**

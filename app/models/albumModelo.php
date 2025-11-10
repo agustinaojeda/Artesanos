@@ -268,10 +268,47 @@ class AlbumModelo
             throw new Exception("Error al procesar el like de álbum en la BD: " . mysqli_error($conexion));
         }
 
+        // Enviar notificación cuando se da like (no cuando se quita)
+        if ($accion === 'like') {
+            $this->enviarNotificacionLikeAlbum($idAlbum, $idUsuario, $conexion);
+        }
+
         $totalLikes = $this->contarLikesAlbum($idAlbum);
 
         cerrarConexion($conexion);
         return ['accion' => $accion, 'totalLikes' => $totalLikes];
+    }
+
+    private function enviarNotificacionLikeAlbum(int $idAlbum, int $idUsuarioLike, $conexion)
+    {
+        // Obtener el propietario del álbum y su título
+        $sqlAlbum = "SELECT a.idUsuarioAlbum, a.tituloAlbum 
+                     FROM album a 
+                     WHERE a.idAlbum = ?";
+        $stmt1 = $conexion->prepare($sqlAlbum);
+        $stmt1->bind_param("i", $idAlbum);
+        $stmt1->execute();
+        $result = $stmt1->get_result();
+        $row = $result->fetch_assoc();
+        $stmt1->close();
+
+        if ($row) {
+            $idUsuarioDestino = $row['idUsuarioAlbum'];
+            $tituloAlbum = $row['tituloAlbum'];
+
+            // Solo enviar notificación si el usuario que da like no es el propietario del álbum
+            if ($idUsuarioDestino != $idUsuarioLike) {
+                $mensaje = "le dio like a tu álbum '$tituloAlbum'";
+                $tipo = "like";
+
+                $sqlNotif = "INSERT INTO notificaciones (idUsuarioDestino, idUsuarioAccion, tipo, mensaje, leida, fecha)
+                             VALUES (?, ?, ?, ?, 0, NOW())";
+                $stmt2 = $conexion->prepare($sqlNotif);
+                $stmt2->bind_param("iiss", $idUsuarioDestino, $idUsuarioLike, $tipo, $mensaje);
+                $stmt2->execute();
+                $stmt2->close();
+            }
+        }
     }
 
     public function contarLikesAlbum(int $idAlbum): int
