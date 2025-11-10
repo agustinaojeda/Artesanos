@@ -191,11 +191,16 @@ document.querySelectorAll(".abrir-modal-album").forEach((el) => {
         // Guardar timestamp base del álbum para cálculo relativo
         window.serverFechaUnix = data.fechaUnix;
         //datos del usuario
+        const perfilUrl = `${window.BASE_URL}/perfil?id=${data.idUsuario}`;
         document.getElementById("modalDetalleAlbumLabel").innerHTML = `
         <div class="d-flex flex-column gap-1">
           <div class="d-flex align-items-center gap-2">
-            <h4 class="mb-0"><strong>${data.apodo}</strong></h4>
-            <div class="text-muted fw-light"><small> - @${data.usuario}</small></div>
+            <a href="${perfilUrl}" style="text-decoration: none; color: inherit; cursor: pointer;">
+              <h4 class="mb-0"><strong style="cursor: pointer;">${data.apodo}</strong></h4>
+            </a>
+            <a href="${perfilUrl}" style="text-decoration: none; color: inherit; cursor: pointer;">
+              <div class="text-muted fw-light"><small style="cursor: pointer;"> - @${data.usuario}</small></div>
+            </a>
           </div>
           <div class="d-flex align-items-center">
             <div class="text-muted mt-1 fw-light" style="font-size: 0.9rem;"><span id="fechaRelativaLabel">${tiempoRelativo(data.fechaUnix, Date.now())}</span></div>
@@ -203,10 +208,21 @@ document.querySelectorAll(".abrir-modal-album").forEach((el) => {
         </div>
         `;
 
-        document.getElementById("modalFotoPerfil").src = data.fotoPerfil;
-        document
-          .getElementById("btnSeguir")
-          .setAttribute("data-id", data.idUsuario);
+        const fotoPerfilEl = document.getElementById("modalFotoPerfil");
+        fotoPerfilEl.src = data.fotoPerfil;
+        fotoPerfilEl.style.cursor = "pointer";
+        fotoPerfilEl.onclick = () => { window.location.href = perfilUrl; };
+        
+        const btnSeguir = document.getElementById("btnSeguir");
+        if (btnSeguir) {
+          btnSeguir.setAttribute("data-id", data.idUsuario);
+          btnSeguir.setAttribute("data-id-seguido", data.idUsuario);
+          
+          // Verificar y actualizar estado del botón seguir después de un pequeño delay
+          setTimeout(() => {
+            verificarEstadoSeguir(btnSeguir, data.idUsuario);
+          }, 100);
+        }
 
         document.getElementById("detalleAlbumIzquierda").innerHTML =
           data.izquierda;
@@ -347,6 +363,92 @@ document.querySelectorAll(".abrir-modal-album").forEach((el) => {
       });
   });
 });
+
+// Función para verificar el estado de seguimiento
+function verificarEstadoSeguir(btn, idSeguido) {
+  if (!btn || !idSeguido) return;
+  
+  fetch(`${window.BASE_URL}/api/checkFollowStatus`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: `idSeguido=${encodeURIComponent(idSeguido)}`
+  })
+  .then(res => res.text())
+  .then(status => {
+    const estado = status.trim();
+    if (['activo', 'aceptado'].includes(estado)) {
+      actualizarBotonSeguir(btn, 'siguiendo');
+    } else if (estado === 'pendiente') {
+      actualizarBotonSeguir(btn, 'pendiente');
+    } else {
+      actualizarBotonSeguir(btn, 'ninguno');
+    }
+  })
+  .catch(err => console.error(err));
+}
+
+// Función para actualizar el botón seguir
+function actualizarBotonSeguir(btn, estado) {
+  if (!btn) return;
+  btn.classList.remove('btn-outline-primary', 'btn-success', 'btn-secondary');
+  switch (estado) {
+    case 'siguiendo':
+    case 'activo':
+      btn.classList.add('btn-success');
+      btn.innerHTML = '<i class="bi bi-check2 me-2"></i> Siguiendo';
+      break;
+    case 'pendiente':
+      btn.classList.add('btn-secondary');
+      btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Pendiente';
+      break;
+    default:
+      btn.classList.add('btn-outline-primary');
+      btn.innerHTML = 'Seguir';
+  }
+}
+
+// Funcionalidad del botón Seguir en el modal
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('#btnSeguir');
+  if (!btn) return;
+
+  const idSeguido = btn.dataset.idSeguido || btn.dataset.idseguido || btn.dataset.id;
+  if (!idSeguido) return;
+
+  // Si ya sigue o está pendiente → dejar de seguir
+  if (btn.classList.contains('btn-success') || btn.classList.contains('btn-secondary')) {
+    fetch(`${window.BASE_URL}/api/dejarSeguir`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: `idSeguido=${encodeURIComponent(idSeguido)}`
+    })
+    .then(res => res.text())
+    .then(data => {
+      if (data.trim() === 'ok') {
+        actualizarBotonSeguir(btn, 'ninguno');
+      } else {
+        alert('Error al dejar de seguir: ' + data);
+      }
+    })
+    .catch(err => console.error(err));
+    return;
+  }
+
+  // Si no sigue → redirigir al perfil (igual que en la página de perfil)
+  const perfilUrl = `${window.BASE_URL}/perfil?id=${idSeguido}`;
+  window.location.href = perfilUrl;
+});
+
+// Polling para actualizar estado del botón seguir en el modal cada 5 segundos
+setInterval(() => {
+  const btn = document.querySelector('#btnSeguir');
+  if (!btn) return;
+  
+  const idSeguido = btn.dataset.idSeguido || btn.dataset.idseguido || btn.dataset.id;
+  if (!idSeguido) return;
+  
+  verificarEstadoSeguir(btn, idSeguido);
+}, 5000);
 
 //funcion para el boton de cargar mas albumes
 document.addEventListener("DOMContentLoaded", function () {

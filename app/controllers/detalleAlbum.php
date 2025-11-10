@@ -163,10 +163,17 @@ if ($idUsuario == 0) {
 $htmlIzquierda .= '<div id="listaComentarios" class="mt-3"></div>';
 
 // HTML DERECHA: perfil
+$idUsuarioPerfil = (int)$usuario['idUsuario'];
 $htmlDerecha = '<div class="text-center mt-5">
-  <img src="' . obtenerAvatar($usuario['idUsuario']) . '" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
-  <h5>' . htmlspecialchars($usuario['apodo'] ?? 'Sin apodo') . '</h5>
-  <p class="text-muted">@' . htmlspecialchars(ltrim($usuario['arroba'] ?? '', '@')) . '</p>
+  <a href="' . $basePath . '/perfil?id=' . $idUsuarioPerfil . '" style="text-decoration: none; color: inherit; cursor: pointer;">
+    <img src="' . obtenerAvatar($usuario['idUsuario']) . '" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover; cursor: pointer;">
+  </a>
+  <a href="' . $basePath . '/perfil?id=' . $idUsuarioPerfil . '" style="text-decoration: none; color: inherit; cursor: pointer;">
+    <h5 style="cursor: pointer;">' . htmlspecialchars($usuario['apodo'] ?? 'Sin apodo') . '</h5>
+  </a>
+  <a href="' . $basePath . '/perfil?id=' . $idUsuarioPerfil . '" style="text-decoration: none; color: inherit; cursor: pointer;">
+    <p class="text-muted" style="cursor: pointer;">@' . htmlspecialchars(ltrim($usuario['arroba'] ?? '', '@')) . '</p>
+  </a>
   <div class="d-flex justify-content-center gap-3 mt-2">
     <div><strong>' . (int)$cantAlbumes . '</strong><br><small>Álbumes</small></div>
     <div><strong>' . (int)$cantSeguidores . '</strong><br><small>Seguidores</small></div>
