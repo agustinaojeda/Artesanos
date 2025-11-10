@@ -79,11 +79,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 ?>
   <div class="register-container" id="registro">
-    <div class="register-logo">
+    <div class="register-logo" style="cursor: pointer;" onclick="window.location.href='<?= $basePath ?>/home'">
       <img src="<?= $basePath ?>/assets/images/logo.png" alt="Artesanos" width="80">
     </div>
 
-    <h5>Artesanos</h5>
+    <h5 style="cursor: pointer;" onclick="window.location.href='<?= $basePath ?>/home'">Artesanos</h5>
     <p>¡Necesitás una cuenta para seguir viendo!</p>
 
     <?php if ($serverMessage): ?>
@@ -160,14 +160,53 @@ document.getElementById("formRecuperar").addEventListener("submit", async (e) =>
   const form = e.target;
   const data = new FormData(form);
 
-  const response = await fetch('<?= $basePath ?>/api/recuperar', { method: "POST", body: data });
-  const result = await response.json();
+  try {
+    const response = await fetch('<?= $basePath ?>/api/recuperar', { method: "POST", body: data });
+    const result = await response.json();
 
-  alert(result.message);
+    // Cerrar el modal primero
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalRecuperar'));
+    if (modal) modal.hide();
 
-  if (result.status === "success") {
-    // Redirigir al formulario para cambiar contraseña
-    window.location.href = result.redirect;
+    if (result.status === "success") {
+      Swal.fire({
+        title: '¡Correo enviado!',
+        text: result.message,
+        icon: 'success',
+        confirmButtonColor: '#f7931e',
+        confirmButtonText: 'Continuar',
+        timer: 3000,
+        showConfirmButton: true
+      }).then(() => {
+        // Redirigir al formulario para cambiar contraseña
+        window.location.href = result.redirect;
+      });
+    } else if (result.status === "warning") {
+      Swal.fire({
+        title: 'Atención',
+        text: result.message,
+        icon: 'warning',
+        confirmButtonColor: '#f7931e',
+        confirmButtonText: 'Entendido'
+      });
+    } else {
+      Swal.fire({
+        title: 'Error',
+        text: result.message || 'Ocurrió un error inesperado',
+        icon: 'error',
+        confirmButtonColor: '#f7931e',
+        confirmButtonText: 'Cerrar'
+      });
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    Swal.fire({
+      title: 'Error de conexión',
+      text: 'No se pudo conectar con el servidor. Intenta nuevamente.',
+      icon: 'error',
+      confirmButtonColor: '#f7931e',
+      confirmButtonText: 'Cerrar'
+    });
   }
 });
 </script>
