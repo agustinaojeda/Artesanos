@@ -393,6 +393,31 @@ class AlbumModelo
         return $usuario;
     }
 
+    public function obtenerDatosUsuarioPorId($idUsuario){
+        $conexion = abrirConexion();
+
+        $idUsuario = (int)$idUsuario;
+
+        $consulta = "SELECT u.idUsuario, u.apodoUsuario, u.arrobaUsuario, u.IdFotoPerfilUsuario FROM usuario u WHERE u.idUsuario = $idUsuario LIMIT 1";
+
+        $resultado = mysqli_query($conexion, $consulta);
+
+        $nfilas = mysqli_num_rows($resultado);
+        $usuario = null;
+        if ($nfilas > 0) {
+            $fila = mysqli_fetch_assoc($resultado);
+            $usuario = [
+                'apodo' => $fila['apodoUsuario'],
+                'arroba' => $fila['arrobaUsuario'],
+                'fotoPerfil' => $fila['IdFotoPerfilUsuario'],
+                'idUsuario' => $fila['idUsuario']
+            ];
+        }
+
+        cerrarConexion($conexion);
+        return $usuario;
+    }
+
     public function contarSeguidoresDeUsuario($idUsuario){
         $conexion = abrirConexion();
 
@@ -528,6 +553,106 @@ class AlbumModelo
 
         cerrarConexion($conexion);
         return $ok;
+    }
+
+    /**
+     * Obtiene todas las imágenes likeadas (portadas de álbumes + imágenes individuales) 
+     * de un usuario específico, agrupadas por el usuario que las creó
+     * @param int $idUsuarioLogueado El ID del usuario que dio los likes
+     * @param int $idUsuarioSeguido El ID del usuario del que se quieren ver las imágenes likeadas
+     * @return array Array con todas las imágenes (portadas como imágenes virtuales + imágenes reales)
+     */
+    public function obtenerTodasImagenesLikeadas(int $idUsuarioLogueado, int $idUsuarioSeguido): array
+    {
+        $conexion = abrirConexion();
+        $imagenes = [];
+
+        // 1. Obtener portadas de álbumes a los que dio like
+        $sqlPortadas = "
+            SELECT 
+                a.idAlbum,
+                a.tituloAlbum AS nombreAlbum,
+                a.urlPortadaAlbum AS urlImagen,
+                a.fechaCreacionAlbum AS fechaImagen,
+                NULL AS tituloImagen,
+                NULL AS descripcionImagen,
+                a.idAlbum AS idAlbumImagen,
+                'portada' AS tipo
+            FROM megusta_album ma
+            INNER JOIN album a ON a.idAlbum = ma.idAlbumLike
+            WHERE ma.idUsuarioLike = ? 
+            AND a.idUsuarioAlbum = ?
+            ORDER BY ma.fechaLike DESC
+        ";
+        $stmtPortadas = $conexion->prepare($sqlPortadas);
+        if ($stmtPortadas) {
+            $stmtPortadas->bind_param("ii", $idUsuarioLogueado, $idUsuarioSeguido);
+            $stmtPortadas->execute();
+            $resPortadas = $stmtPortadas->get_result();
+            while ($portada = $resPortadas->fetch_assoc()) {
+                $urlImagen = $portada['urlImagen'] ?? '';
+                // Si es imagen.png o está vacío, usar el valor tal cual
+                if (empty($urlImagen) || $urlImagen === 'imagen.png') {
+                    $urlImagen = 'imagen.png';
+                } else {
+                    $urlImagen = basename($urlImagen);
+                }
+                
+                $imagenes[] = [
+                    'idImagen' => 'portada_' . $portada['idAlbum'],
+                    'tituloImagen' => $portada['tituloImagen'] ?? '',
+                    'descripcionImagen' => $portada['descripcionImagen'] ?? '',
+                    'urlImagen' => $urlImagen,
+                    'idAlbumImagen' => (int)$portada['idAlbum'],
+                    'nombreAlbum' => $portada['nombreAlbum'] ?? '',
+                    'fechaImagen' => $portada['fechaImagen'] ?? '',
+                    'tipo' => 'portada',
+                    'esPortada' => true
+                ];
+            }
+            $stmtPortadas->close();
+        }
+
+        // 2. Obtener imágenes individuales a las que dio like
+        $sqlImagenes = "
+            SELECT 
+                i.idImagen,
+                i.tituloImagen,
+                i.descripcionImagen,
+                i.urlImagen,
+                i.idAlbumImagen,
+                i.fechaImagen,
+                a.tituloAlbum AS nombreAlbum
+            FROM megusta m
+            INNER JOIN imagen i ON i.idImagen = m.idImagenLike
+            INNER JOIN album a ON a.idAlbum = i.idAlbumImagen
+            WHERE m.idUsuarioLike = ? 
+            AND a.idUsuarioAlbum = ?
+            ORDER BY m.fechaLike DESC
+        ";
+        $stmtImagenes = $conexion->prepare($sqlImagenes);
+        if ($stmtImagenes) {
+            $stmtImagenes->bind_param("ii", $idUsuarioLogueado, $idUsuarioSeguido);
+            $stmtImagenes->execute();
+            $resImagenes = $stmtImagenes->get_result();
+            while ($imagen = $resImagenes->fetch_assoc()) {
+                $imagenes[] = [
+                    'idImagen' => (int)$imagen['idImagen'],
+                    'tituloImagen' => $imagen['tituloImagen'] ?? '',
+                    'descripcionImagen' => $imagen['descripcionImagen'] ?? '',
+                    'urlImagen' => basename($imagen['urlImagen']),
+                    'idAlbumImagen' => (int)$imagen['idAlbumImagen'],
+                    'nombreAlbum' => $imagen['nombreAlbum'],
+                    'fechaImagen' => $imagen['fechaImagen'],
+                    'tipo' => 'imagen',
+                    'esPortada' => false
+                ];
+            }
+            $stmtImagenes->close();
+        }
+
+        cerrarConexion($conexion);
+        return $imagenes;
     }
 
 }

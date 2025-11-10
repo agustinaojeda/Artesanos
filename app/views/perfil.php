@@ -167,121 +167,116 @@ if ($stmtLikedImages) {
     $stmtLikedImages->close();
 }
 
+// === Contenido que te gusta de usuarios que sigues (solo si es el perfil propio) ===
+$likedContentByUser = [];
+if ($isOwner) {
+    // Obtener usuarios que el perfil actual sigue con estado 'activo'
+    $sqlLikedByUser = "
+        SELECT DISTINCT 
+            u.idUsuario,
+            u.apodoUsuario,
+            u.arrobaUsuario,
+            u.IdFotoPerfilUsuario
+        FROM usuario u
+        INNER JOIN seguimiento s ON s.idSeguido = u.idUsuario
+        WHERE s.idSeguidor = ? 
+        AND s.estadoSeguimiento = 'activo'
+        AND (
+            EXISTS (
+                SELECT 1 FROM megusta_album ma 
+                INNER JOIN album a ON a.idAlbum = ma.idAlbumLike 
+                WHERE ma.idUsuarioLike = ? AND a.idUsuarioAlbum = u.idUsuario
+            )
+            OR EXISTS (
+                SELECT 1 FROM megusta m 
+                INNER JOIN imagen i ON i.idImagen = m.idImagenLike 
+                INNER JOIN album a ON a.idAlbum = i.idAlbumImagen 
+                WHERE m.idUsuarioLike = ? AND a.idUsuarioAlbum = u.idUsuario
+            )
+        )
+        ORDER BY u.apodoUsuario
+    ";
+    
+    $stmtLikedByUser = $conexion->prepare($sqlLikedByUser);
+    if ($stmtLikedByUser) {
+        $stmtLikedByUser->bind_param("iii", $perfilId, $perfilId, $perfilId);
+        $stmtLikedByUser->execute();
+        $resLikedByUser = $stmtLikedByUser->get_result();
+        
+        while ($row = $resLikedByUser->fetch_assoc()) {
+            $userId = (int)$row['idUsuario'];
+            $likedContentByUser[$userId] = [
+                'user' => [
+                    'idUsuario' => $userId,
+                    'apodoUsuario' => $row['apodoUsuario'],
+                    'arrobaUsuario' => $row['arrobaUsuario'],
+                    'fotoPerfil' => $row['IdFotoPerfilUsuario'] ?? null
+                ],
+                'albums' => [],
+                'images' => []
+            ];
+            
+            // Obtener portadas de álbumes a los que dio like
+            $sqlAlbumLikes = "
+                SELECT DISTINCT
+                    a.idAlbum,
+                    a.tituloAlbum,
+                    a.urlPortadaAlbum,
+                    a.fechaCreacionAlbum
+                FROM megusta_album ma
+                INNER JOIN album a ON a.idAlbum = ma.idAlbumLike
+                WHERE ma.idUsuarioLike = ? 
+                AND a.idUsuarioAlbum = ?
+                ORDER BY ma.fechaLike DESC
+            ";
+            $stmtAlbumLikes = $conexion->prepare($sqlAlbumLikes);
+            if ($stmtAlbumLikes) {
+                $stmtAlbumLikes->bind_param("ii", $perfilId, $userId);
+                $stmtAlbumLikes->execute();
+                $resAlbumLikes = $stmtAlbumLikes->get_result();
+                while ($album = $resAlbumLikes->fetch_assoc()) {
+                    $likedContentByUser[$userId]['albums'][] = $album;
+                }
+                $stmtAlbumLikes->close();
+            }
+            
+            // Obtener imágenes individuales a las que dio like
+            $sqlImageLikes = "
+                SELECT DISTINCT
+                    i.idImagen,
+                    i.tituloImagen,
+                    i.descripcionImagen,
+                    i.urlImagen,
+                    i.idAlbumImagen,
+                    a.tituloAlbum AS nombreAlbum,
+                    a.urlPortadaAlbum
+                FROM megusta m
+                INNER JOIN imagen i ON i.idImagen = m.idImagenLike
+                INNER JOIN album a ON a.idAlbum = i.idAlbumImagen
+                WHERE m.idUsuarioLike = ? 
+                AND a.idUsuarioAlbum = ?
+                ORDER BY m.fechaLike DESC
+            ";
+            $stmtImageLikes = $conexion->prepare($sqlImageLikes);
+            if ($stmtImageLikes) {
+                $stmtImageLikes->bind_param("ii", $perfilId, $userId);
+                $stmtImageLikes->execute();
+                $resImageLikes = $stmtImageLikes->get_result();
+                while ($image = $resImageLikes->fetch_assoc()) {
+                    $likedContentByUser[$userId]['images'][] = $image;
+                }
+                $stmtImageLikes->close();
+            }
+        }
+        $stmtLikedByUser->close();
+    }
+}
+
 $conexion->close();
 
 $pageTitle = 'Artesanos - Perfil';
 include VIEW_PATH . '/header.php'; 
-include VIEW_PATH . '/nav.php'; 
-$likedContentByUser = [];
-$sqlLikedByUser = "
-    SELECT DISTINCT 
-        u.idUsuario,
-        u.nombreUsuario,
-        u.apodoUsuario,
-        u.arrobaUsuario,
-        (
-            SELECT fp.imagenPerfil
-            FROM fotosdeperfil fp
-            WHERE fp.idFotoPerfil = u.idFotoPerfilUsuario
-            LIMIT 1
-        ) as avatarUrl,
-        GROUP_CONCAT(DISTINCT CONCAT('album:', a.idAlbum)) as albumLikes,
-        GROUP_CONCAT(DISTINCT CONCAT('image:', i.idImagen)) as imageLikes
-    FROM usuario u
-    LEFT JOIN album a ON a.idUsuarioAlbum = u.idUsuario
-    LEFT JOIN megusta_album ma ON ma.idAlbumLike = a.idAlbum AND ma.idUsuarioLike = ?
-    LEFT JOIN imagen i ON i.idAlbumImagen = a.idAlbum
-    LEFT JOIN megusta m ON m.idImagenLike = i.idImagen AND m.idUsuarioLike = ?
-    WHERE u.idUsuario IN (
-        SELECT idSeguido 
-        FROM seguimiento 
-        WHERE idSeguidor = ? 
-        AND estadoSeguimiento = 'activo'
-    )
-    AND (ma.idAlbumLike IS NOT NULL OR m.idImagenLike IS NOT NULL)
-    GROUP BY u.idUsuario, u.nombreUsuario, u.apodoUsuario, u.arrobaUsuario
-";
-
-$stmtLikedByUser = $conexion->prepare($sqlLikedByUser);
-if ($stmtLikedByUser) {
-    $stmtLikedByUser->bind_param("iii", $perfilId, $perfilId, $perfilId);
-    $stmtLikedByUser->execute();
-    $resLikedByUser = $stmtLikedByUser->get_result();
-    
-    while ($row = $resLikedByUser->fetch_assoc()) {
-        $userId = $row['idUsuario'];
-        $likedContentByUser[$userId] = [
-            'user' => [
-                'idUsuario' => $row['idUsuario'],
-                'nombreUsuario' => $row['nombreUsuario'],
-                'apodoUsuario' => $row['apodoUsuario'],
-                'arrobaUsuario' => $row['arrobaUsuario'],
-                'avatarUrl' => $row['avatarUrl']
-            ],
-            'albums' => [],
-            'images' => []
-        ];
-        
-        // Procesar álbumes
-        if ($row['albumLikes']) {
-            $albumIds = array_map(function($item) {
-                return (int)substr($item, 6); // Remover 'album:' y convertir a int
-            }, explode(',', $row['albumLikes']));
-            
-            // Obtener detalles de los álbumes
-            $sqlAlbumDetails = "
-                SELECT 
-                    a.idAlbum, 
-                    a.tituloAlbum as nombreAlbum, 
-                    a.urlPortadaAlbum,
-                    a.fechaCreacionAlbum,
-                    COUNT(DISTINCT ma.idUsuarioLike) as totalLikes
-                FROM album a
-                LEFT JOIN megusta_album ma ON ma.idAlbumLike = a.idAlbum
-                WHERE a.idAlbum IN (" . implode(',', $albumIds) . ")
-                GROUP BY a.idAlbum
-            ";
-            
-            $albumResult = $conexion->query($sqlAlbumDetails);
-            if ($albumResult) {
-                while ($album = $albumResult->fetch_assoc()) {
-                    $likedContentByUser[$userId]['albums'][] = $album;
-                }
-            }
-        }
-        
-        // Procesar imágenes
-        if ($row['imageLikes']) {
-            $imageIds = array_map(function($item) {
-                return (int)substr($item, 6); // Remover 'image:' y convertir a int
-            }, explode(',', $row['imageLikes']));
-            
-            // Obtener detalles de las imágenes
-            $sqlImageDetails = "
-                SELECT 
-                    i.idImagen,
-                    i.tituloImagen,
-                    i.urlImagen,
-                    i.idAlbumImagen,
-                    a.tituloAlbum as nombreAlbum,
-                    COUNT(DISTINCT m.idUsuarioLike) as totalLikes
-                FROM imagen i
-                JOIN album a ON a.idAlbum = i.idAlbumImagen
-                LEFT JOIN megusta m ON m.idImagenLike = i.idImagen
-                WHERE i.idImagen IN (" . implode(',', $imageIds) . ")
-                GROUP BY i.idImagen
-            ";
-            
-            $imageResult = $conexion->query($sqlImageDetails);
-            if ($imageResult) {
-                while ($image = $imageResult->fetch_assoc()) {
-                    $likedContentByUser[$userId]['images'][] = $image;
-                }
-            }
-        }
-    }
-    $stmtLikedByUser->close();
-}
+include VIEW_PATH . '/nav.php';
 ?>
     <link rel="stylesheet" href="<?= $basePath ?>/assets/css/perfil.css">
     <link rel="stylesheet" href="<?= $basePath ?>/assets/css/modalEliminarAlbum.css">
@@ -796,18 +791,33 @@ if ($stmtLikedByUser) {
                             
                             <!-- Card del usuario que abre el modal de detalle -->
                             <div class="album-card position-relative" 
-                                data-id="<?= $previewId ?>"
                                 data-user-id="<?= $userId ?>"
-                                data-bs-toggle="modal" 
-                                data-bs-target="#modalDetalleAlbum"
-                                onclick="cargarDetalleAlbum(null, this.dataset.userId);">
+                                data-tipo="likes-usuario"
+                                style="cursor: pointer;"
+                                onclick="event.stopPropagation(); cargarDetalleLikesUsuario(<?= $userId ?>);">
                                 <div class="album-img-wrapper">
-                                    <img src="<?= $previewImage ? $previewPath . e($previewImage) : "$basePath/assets/images/imagen.png" ?>" 
+                                    <?php
+                                    $previewSrc = "$basePath/assets/images/imagen.png";
+                                    if ($previewImage) {
+                                        if (!empty($userData['albums'])) {
+                                            $portada = $userData['albums'][0]['urlPortadaAlbum'];
+                                            if ($portada && $portada !== 'imagen.png') {
+                                                $previewSrc = "$basePath/uploads/portadas/" . e($portada);
+                                            }
+                                        } elseif (!empty($userData['images'])) {
+                                            $previewSrc = "$basePath/uploads/imagenes/" . e($userData['images'][0]['urlImagen']);
+                                        }
+                                    }
+                                    ?>
+                                    <img src="<?= $previewSrc ?>" 
                                         alt="Preview" class="album-img">
                                 </div>
                                 <div class="album-info">
                                     <div class="d-flex align-items-center gap-2">
-                                        <img src="<?= $basePath ?>/uploads/avatares/<?= e($userData['user']['avatarUrl'] ?? 'default.png') ?>" 
+                                        <?php
+                                        $avatarUrl = obtenerAvatar($userId);
+                                        ?>
+                                        <img src="<?= $avatarUrl ?>" 
                                             alt="Avatar" 
                                             class="rounded-circle"
                                             style="width: 30px; height: 30px; object-fit: cover;">

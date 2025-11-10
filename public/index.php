@@ -137,6 +137,9 @@ try {
         case '/api/eliminarPortadaAlbum':
             require CTRL_PATH . '/eliminarPortadaAlbum.php';
             break;
+        case '/api/detalleLikesUsuario':
+            require CTRL_PATH . '/detalleLikesUsuario.php';
+            break;
         default:
             http_response_code(404);
             echo '404 Not Found';

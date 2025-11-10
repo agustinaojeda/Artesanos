@@ -1,10 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const modal = document.getElementById("modalDetalleAlbum");
-  const modalLabel = document.getElementById("modalDetalleAlbumLabel");
-  const modalBodyIzq = document.getElementById("detalleAlbumIzquierda");
-  const modalBodyDer = document.getElementById("detalleAlbumDerecha");
-  const fotoPerfil = document.getElementById("modalFotoPerfil");
-
+// Funciones globales para manejo de fechas (disponibles antes de DOMContentLoaded)
 // Convierte "YYYY-MM-DD HH:MM:SS" (MySQL) o "YYYY-MM-DDTHH:MM:SS" a milisegundos
 function parseMySQLDateToMs(mysqlDate) {
   if (!mysqlDate || typeof mysqlDate !== "string") return NaN;
@@ -62,6 +56,13 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
   return `hace ${diffAnios} años`;
 }
 
+document.addEventListener("DOMContentLoaded", () => {
+  const modal = document.getElementById("modalDetalleAlbum");
+  const modalLabel = document.getElementById("modalDetalleAlbumLabel");
+  const modalBodyIzq = document.getElementById("detalleAlbumIzquierda");
+  const modalBodyDer = document.getElementById("detalleAlbumDerecha");
+  const fotoPerfil = document.getElementById("modalFotoPerfil");
+
 
   function joinUrl(base, path) {
     const b = String(base || '').replace(/\/+$/, '');
@@ -70,6 +71,11 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
   }
 
   document.querySelectorAll(".album-card").forEach((card) => {
+    // Ignorar cards de "Me gusta" que tienen data-tipo="likes-usuario"
+    if (card.dataset.tipo === 'likes-usuario') {
+      return; // Esta card se maneja con onclick directo
+    }
+    
     card.addEventListener("click", async () => {
       const albumId = card.dataset.id;
 
@@ -146,6 +152,14 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
         
         modalBodyIzq.innerHTML = data.izquierda;
         modalBodyDer.innerHTML = data.derecha;
+        
+        // Corregir aria-hidden después de cargar el contenido
+        setTimeout(() => {
+          if (modal.classList.contains('show')) {
+            modal.removeAttribute('aria-hidden');
+            modal.setAttribute('aria-modal', 'true');
+          }
+        }, 200);
 
         // Comentarios y likes iniciales en modal
         setTimeout(() => {
@@ -173,14 +187,18 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
           }
 
           async function actualizarInfoImagen() {
+            if (!carrusel) return;
             const activo = carrusel.querySelector(".carousel-item.active");
+            if (!activo) return;
             const titulo = activo?.dataset.titulo || "";
             const descripcion = activo?.dataset.descripcion || "";
             const idImagen = activo?.dataset.idimagen;
-            document.getElementById("tituloImagen").textContent = titulo;
-            document.getElementById("descripcionImagen").textContent = descripcion;
-            btnEnviar.setAttribute("data-idimagen", idImagen);
-            mostrarComentarios(idImagen);
+            const tituloEl = document.getElementById("tituloImagen");
+            const descEl = document.getElementById("descripcionImagen");
+            if (tituloEl) tituloEl.textContent = titulo;
+            if (descEl) descEl.textContent = descripcion;
+            if (btnEnviar && idImagen) btnEnviar.setAttribute("data-idimagen", idImagen);
+            if (idImagen) mostrarComentarios(idImagen);
 
             // Actualizar estado y conteo de like del modal para la imagen activa
             if (btnLikeModal && idImagen) {
@@ -237,8 +255,10 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
             });
           }
 
+          if (carrusel) {
           actualizarInfoImagen();
           carrusel.addEventListener("slid.bs.carousel", actualizarInfoImagen);
+          }
         }, 150);
       } catch (err) {
         console.error("Error al cargar álbum:", err);
@@ -372,9 +392,52 @@ function tiempoRelativo(fech, ahoraMs = Date.now()) {
       return;
     }
   });
-});
 
-// Función para verificar el estado de seguimiento en el modal
+  // Funcionalidad del botón Seguir en el modal
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('#btnSeguir');
+    if (!btn) return;
+
+    const idSeguido = btn.dataset.idSeguido || btn.dataset.idseguido || btn.dataset.id;
+    if (!idSeguido) return;
+
+    // Si ya sigue o está pendiente → dejar de seguir
+    if (btn.classList.contains('btn-success') || btn.classList.contains('btn-secondary')) {
+      fetch(`${window.BASE_URL}/api/dejarSeguir`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `idSeguido=${encodeURIComponent(idSeguido)}`
+      })
+      .then(res => res.text())
+      .then(data => {
+        if (data.trim() === 'ok') {
+          actualizarBotonSeguirModal(btn, 'ninguno');
+        } else {
+          alert('Error al dejar de seguir: ' + data);
+        }
+      })
+      .catch(err => console.error(err));
+      return;
+    }
+
+    // Si no sigue → redirigir al perfil (igual que en la página de perfil)
+    const perfilUrl = `${window.BASE_URL}/perfil?id=${idSeguido}`;
+    window.location.href = perfilUrl;
+  });
+
+  // Polling para actualizar estado del botón seguir en el modal cada 5 segundos
+  setInterval(() => {
+    const btn = document.querySelector('#btnSeguir');
+    if (!btn) return;
+    
+    const idSeguido = btn.dataset.idSeguido || btn.dataset.idseguido || btn.dataset.id;
+    if (!idSeguido) return;
+    
+    verificarEstadoSeguirModal(btn, idSeguido);
+  }, 5000);
+}); // Cierre del DOMContentLoaded
+
+// Función para verificar el estado de seguimiento en el modal (disponible globalmente)
 function verificarEstadoSeguirModal(btn, idSeguido) {
   if (!btn || !idSeguido) return;
   
@@ -397,7 +460,7 @@ function verificarEstadoSeguirModal(btn, idSeguido) {
   .catch(err => console.error(err));
 }
 
-// Función para actualizar el botón seguir en el modal
+// Función para actualizar el botón seguir en el modal (disponible globalmente)
 function actualizarBotonSeguirModal(btn, estado) {
   if (!btn) return;
   btn.classList.remove('btn-outline-primary', 'btn-success', 'btn-secondary');
@@ -417,45 +480,281 @@ function actualizarBotonSeguirModal(btn, estado) {
   }
 }
 
-// Funcionalidad del botón Seguir en el modal
-document.addEventListener('click', function(e) {
-  const btn = e.target.closest('#btnSeguir');
-  if (!btn) return;
-
-  const idSeguido = btn.dataset.idSeguido || btn.dataset.idseguido || btn.dataset.id;
-  if (!idSeguido) return;
-
-  // Si ya sigue o está pendiente → dejar de seguir
-  if (btn.classList.contains('btn-success') || btn.classList.contains('btn-secondary')) {
-    fetch(`${window.BASE_URL}/api/dejarSeguir`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: `idSeguido=${encodeURIComponent(idSeguido)}`
-    })
-    .then(res => res.text())
-    .then(data => {
-      if (data.trim() === 'ok') {
-        actualizarBotonSeguirModal(btn, 'ninguno');
-      } else {
-        alert('Error al dejar de seguir: ' + data);
-      }
-    })
-    .catch(err => console.error(err));
+// Función para cargar el detalle del álbum virtual de "Me gusta" (disponible globalmente)
+window.cargarDetalleLikesUsuario = async function(idUsuario) {
+  console.log('cargarDetalleLikesUsuario llamado con idUsuario:', idUsuario);
+  
+  if (!idUsuario) {
+    console.error('ID de usuario no proporcionado');
+    alert('Error: ID de usuario no proporcionado');
     return;
   }
 
-  // Si no sigue → redirigir al perfil (igual que en la página de perfil)
-  const perfilUrl = `${window.BASE_URL}/perfil?id=${idSeguido}`;
-  window.location.href = perfilUrl;
-});
+  const modal = document.getElementById("modalDetalleAlbum");
+  const modalLabel = document.getElementById("modalDetalleAlbumLabel");
+  const modalBodyIzq = document.getElementById("detalleAlbumIzquierda");
+  const modalBodyDer = document.getElementById("detalleAlbumDerecha");
+  const fotoPerfil = document.getElementById("modalFotoPerfil");
 
-// Polling para actualizar estado del botón seguir en el modal cada 5 segundos
-setInterval(() => {
-  const btn = document.querySelector('#btnSeguir');
-  if (!btn) return;
+  if (!modal) {
+    console.error('Modal no encontrado');
+    alert('Error: Modal no encontrado');
+    return;
+  }
   
-  const idSeguido = btn.dataset.idSeguido || btn.dataset.idseguido || btn.dataset.id;
-  if (!idSeguido) return;
-  
-  verificarEstadoSeguirModal(btn, idSeguido);
-}, 5000);
+  if (!modalLabel || !modalBodyIzq || !modalBodyDer) {
+    console.error('Elementos del modal no encontrados', { modalLabel, modalBodyIzq, modalBodyDer });
+    alert('Error: Elementos del modal no encontrados');
+    return;
+  }
+
+  // Mostrar modal con estado de carga
+  modalLabel.innerHTML = `<img src='${window.BASE_URL}/assets/images/logo.png' width='28' class='me-2'> Cargando contenido...`;
+  modalBodyIzq.innerHTML = `<p class='text-center py-5'>Cargando imágenes...</p>`;
+  modalBodyDer.innerHTML = `<p class='text-center py-5'>Cargando datos...</p>`;
+  if (fotoPerfil) fotoPerfil.src = "";
+
+  // Abrir modal usando Bootstrap
+  try {
+    const bsModal = bootstrap.Modal.getOrCreateInstance(modal);
+    bsModal.show();
+    // Corregir aria-hidden después de que el modal se muestre
+    setTimeout(() => {
+      if (modal.classList.contains('show')) {
+        modal.removeAttribute('aria-hidden');
+        modal.setAttribute('aria-modal', 'true');
+      }
+    }, 100);
+    console.log('Modal abierto');
+  } catch (e) {
+    console.error('Error al abrir modal:', e);
+    // Fallback: usar jQuery si Bootstrap no está disponible
+    $(modal).modal('show');
+  }
+
+  const url = `${window.BASE_URL}/api/detalleLikesUsuario?idUsuario=${encodeURIComponent(idUsuario)}`;
+  console.log('Llamando a:', url);
+
+  try {
+    const res = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
+    const raw = await res.text();
+    console.log('Respuesta HTTP:', res.status, res.statusText);
+    console.log('Respuesta raw (primeros 500 chars):', raw.slice(0, 500));
+
+    if (!res.ok) {
+      console.error('Error HTTP:', res.status, raw);
+      throw new Error(`HTTP ${res.status} — ${raw.slice(0,200)}`);
+    }
+
+    let data;
+    try {
+      data = JSON.parse(raw);
+      console.log('JSON parseado correctamente');
+    } catch (e) {
+      console.error('[detalleLikesUsuario] JSON parse error:', e);
+      console.error('Raw response:', raw);
+      modalLabel.textContent = "Error de formato";
+      modalBodyIzq.innerHTML = `<pre class="p-3 text-danger" style="white-space:pre-wrap; max-height:300px; overflow:auto;">${raw.slice(0,1000)}</pre>`;
+      modalBodyDer.innerHTML = "";
+      return;
+    }
+
+    if (data.error) {
+      modalBodyIzq.innerHTML = `<p class='text-danger text-center py-5'>${data.error}</p>`;
+      modalBodyDer.innerHTML = "";
+      modalLabel.textContent = "Error";
+      return;
+    }
+
+    // Mostrar datos
+    console.log('Datos recibidos:', data);
+    
+    // Validar que los datos necesarios estén presentes
+    if (!data.apodo || !data.usuario || !data.idUsuario) {
+      console.error('Datos incompletos:', data);
+      modalLabel.textContent = "Error: Datos incompletos";
+      modalBodyIzq.innerHTML = `<p class='text-danger text-center py-5'>Error: No se pudieron cargar los datos del usuario.</p>`;
+      modalBodyDer.innerHTML = "";
+      return;
+    }
+    
+    // Usar fechaUnix si está disponible, sino usar fecha
+    let fechaRelativa = 'hace un momento';
+    if (data.fechaUnix) {
+      fechaRelativa = tiempoRelativo(data.fechaUnix, Date.now());
+    } else if (data.fecha) {
+      fechaRelativa = tiempoRelativo(data.fecha);
+    }
+    
+    const perfilUrl = `${window.BASE_URL}/perfil?id=${data.idUsuario}`;
+    modalLabel.innerHTML = `
+      <div class="d-flex flex-column">
+        <div class="d-flex align-items-center gap-2">
+          <a href="${perfilUrl}" style="text-decoration: none; color: inherit; cursor: pointer;">
+            <h4 class="mb-0"><strong style="cursor: pointer;">${data.apodo || 'Usuario'}</strong></h4>
+          </a>
+          <a href="${perfilUrl}" style="text-decoration: none; color: inherit; cursor: pointer;">
+            <div class="text-muted fw-light"><small style="cursor: pointer;"> - @${data.usuario || 'usuario'}</small></div>
+          </a>
+        </div>
+        <div class="text-muted mt-1 fw-light" style="font-size: 0.9rem;">${fechaRelativa}</div>
+      </div>`;
+
+    fotoPerfil.src = data.fotoPerfil;
+    fotoPerfil.style.cursor = "pointer";
+    fotoPerfil.onclick = () => { window.location.href = perfilUrl; };
+    
+    const btnSeguir = document.getElementById("btnSeguir");
+    if (btnSeguir) {
+      btnSeguir.setAttribute("data-id", data.idUsuario);
+      btnSeguir.setAttribute("data-id-seguido", data.idUsuario);
+      
+      setTimeout(() => {
+        verificarEstadoSeguirModal(btnSeguir, data.idUsuario);
+      }, 100);
+    }
+    
+    modalBodyIzq.innerHTML = data.izquierda;
+    modalBodyDer.innerHTML = data.derecha;
+
+    // Inicializar carrusel y funcionalidades
+    setTimeout(() => {
+      const carrusel = document.getElementById(data.carruselId || "carouselAlbumVirtual");
+      const btnEnviar = document.getElementById("btnEnviarComentario");
+      const inputComentario = document.getElementById("inputComentario");
+      const listaComentarios = document.getElementById("listaComentarios");
+      const btnLikeModal = document.getElementById("btn-like-imagen");
+      const countModal = document.getElementById("likes-count-display");
+
+      // Inicializar carrusel
+      if (carrusel) {
+        try {
+          new bootstrap.Carousel(carrusel, { ride: false });
+        } catch (e) {
+          console.warn('Error al inicializar carrusel:', e);
+        }
+
+        // Actualizar info cuando cambia la imagen
+        const actualizarInfoImagen = () => {
+          const activo = carrusel.querySelector('.carousel-item.active');
+          if (!activo) return;
+
+          const tituloEl = document.getElementById('tituloImagen');
+          const descEl = document.getElementById('descripcionImagen');
+          const esPortada = activo.dataset.esportada === '1';
+
+          if (tituloEl) {
+            tituloEl.textContent = activo.dataset.titulo || activo.dataset.nombrealbum || '';
+          }
+          if (descEl) {
+            descEl.textContent = activo.dataset.descripcion || '';
+          }
+
+          // Mostrar/ocultar botón de like según si es portada
+          if (btnLikeModal) {
+            if (esPortada) {
+              btnLikeModal.style.display = 'none';
+              if (countModal) countModal.style.display = 'none';
+            } else {
+              btnLikeModal.style.display = 'block';
+              if (countModal) countModal.style.display = 'block';
+              const idImagen = activo.dataset.idimagen;
+              if (idImagen) {
+                btnLikeModal.dataset.idimagen = idImagen;
+                // Cargar estado de like
+                fetch(`${window.BASE_URL}/api/obtenerLikes?idImagen=${idImagen}`)
+                  .then(res => res.json())
+                  .then(data => {
+                    if (countModal) countModal.textContent = data.totalLikes || 0;
+                    if (btnLikeModal) {
+                      btnLikeModal.src = data.likedByUser 
+                        ? `${window.BASE_URL}/assets/images/likelleno.png`
+                        : `${window.BASE_URL}/assets/images/like.png`;
+                    }
+                  })
+                  .catch(err => console.error(err));
+              }
+            }
+          }
+        };
+
+        carrusel.addEventListener('slid.bs.carousel', actualizarInfoImagen);
+        actualizarInfoImagen(); // Inicial
+      } else {
+        console.error('Carrusel no encontrado. ID buscado:', data.carruselId || "carouselAlbumVirtual");
+      }
+
+      // Comentarios (similar al código existente)
+      if (btnEnviar && inputComentario && listaComentarios) {
+        function mostrarComentarios(idImg) {
+          if (!data.comentarios || !data.comentarios[idImg]) {
+            listaComentarios.innerHTML = '<p class="text-muted small">Sin comentarios aún.</p>';
+            return;
+          }
+          const comentarios = data.comentarios[idImg];
+          if (comentarios.length === 0) {
+            listaComentarios.innerHTML = '<p class="text-muted small">Sin comentarios aún.</p>';
+            return;
+          }
+          listaComentarios.innerHTML = comentarios.map(c => {
+            const fechaCom = tiempoRelativo(c.fechaComentario);
+            return `
+              <div class="d-flex gap-2 mb-2">
+                <img src="${c.avatar || window.BASE_URL + '/assets/images/imagen.png'}" 
+                     class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+                <div class="flex-grow-1">
+                  <div class="fw-semibold small">${c.apodoUsuario || 'Usuario'}</div>
+                  <div class="small">${c.mensajeComentario || ''}</div>
+                  <div class="text-muted" style="font-size: 0.75rem;">${fechaCom}</div>
+                </div>
+              </div>`;
+          }).join('');
+        }
+
+        btnEnviar.onclick = async () => {
+          const activo = carrusel?.querySelector('.carousel-item.active');
+          if (!activo) return;
+          const idImg = activo.dataset.idimagen;
+          const esPortada = activo.dataset.esportada === '1';
+          
+          if (esPortada) {
+            alert('No se pueden agregar comentarios a portadas de álbumes');
+            return;
+          }
+
+          const texto = inputComentario.value.trim();
+          if (!texto || !idImg) return;
+
+          try {
+            const res = await fetch(`${window.BASE_URL}/api/agregarComentario`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: `idImagen=${idImg}&mensaje=${encodeURIComponent(texto)}`
+            });
+            const result = await res.json();
+            if (result.success) {
+              inputComentario.value = '';
+              mostrarComentarios(idImg);
+            } else {
+              alert('Error: ' + (result.error || 'No se pudo agregar el comentario'));
+            }
+          } catch (err) {
+            console.error(err);
+            alert('Error al enviar comentario');
+          }
+        };
+
+        // Mostrar comentarios iniciales
+        const activo = carrusel?.querySelector('.carousel-item.active');
+        if (activo && !activo.dataset.esportada) {
+          mostrarComentarios(activo.dataset.idimagen);
+        }
+      }
+    }, 100);
+  } catch (err) {
+    console.error('[detalleLikesUsuario] Error:', err);
+    modalLabel.textContent = "Error";
+    modalBodyIzq.innerHTML = `<p class='text-danger text-center py-5'>Error al cargar el contenido: ${err.message}</p>`;
+    modalBodyDer.innerHTML = "";
+  }
+};
