@@ -183,6 +183,9 @@ $htmlDerecha = '<div class="text-center mt-5">
 // Respuesta final
 date_default_timezone_set('America/Lima');
 
+// Verificar si el usuario actual es el dueño del álbum
+$esPropietario = ($idUsuario > 0 && $idUsuario === (int)$usuario['idUsuario']);
+
 echo json_encode([
     'tituloAlbum' => $album->tituloAlbum,
     'fotoPerfil' => obtenerAvatar($usuario['idUsuario']),
@@ -192,6 +195,9 @@ echo json_encode([
     'apodo' => $usuario['apodo'] ?? 'Usuario',
     'usuario' => ltrim($usuario['arroba'] ?? '', '@'),
     'idUsuario' => $usuario['idUsuario'],
+    'idUsuarioActual' => $idUsuario,
+    'idAlbum' => $album->idAlbum,
+    'esPropietario' => $esPropietario,
     'cantAlbumes' => (int)$cantAlbumes,
     'cantSeguidores' => (int)$cantSeguidores,
     'izquierda' => $htmlIzquierda,

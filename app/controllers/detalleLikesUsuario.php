@@ -212,6 +212,9 @@ if (!$fechaMasReciente) {
 $fechaISO = date('c', $fechaMasReciente);
 $fechaUnix = $fechaMasReciente * 1000; // Convertir a milisegundos
 
+// Verificar si el usuario actual es el dueño (en este caso siempre será false porque es contenido de otro usuario)
+$esPropietario = ($idUsuarioLogueado === $idUsuarioSeguido);
+
 echo json_encode([
     'tituloAlbum' => 'Contenido que te gusta de ' . $apodoPublicador,
     'fotoPerfil' => obtenerAvatar($idUsuarioSeguido),
@@ -219,7 +222,9 @@ echo json_encode([
     'fechaUnix' => $fechaUnix,
     'apodo' => $apodoPublicador,
     'usuario' => $arrobaPublicador,
-    'idUsuario' => $idUsuarioSeguido, 
+    'idUsuario' => $idUsuarioSeguido,
+    'idUsuarioActual' => $idUsuarioLogueado,
+    'esPropietario' => $esPropietario,
     'cantAlbumes' => (int)$cantAlbumes,
     'cantSeguidores' => (int)$cantSeguidores,
     'izquierda' => $htmlIzquierda,
