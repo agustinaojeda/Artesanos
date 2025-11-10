@@ -491,6 +491,26 @@ include VIEW_PATH . '/nav.php';
             padding: 4px 6px;
         }
 
+        /* Botón de 3 puntitos naranja en modal */
+        #dropdownDenunciarAlbum .opciones-btn {
+            background: #f7931e;
+            color: white;
+            border: none;
+        }
+
+        #dropdownDenunciarAlbum .opciones-btn:hover {
+            background: #e6821a;
+            color: white;
+        }
+
+        /* Eliminar fondo azul al hacer clic en las opciones del menú */
+        #dropdownDenunciarAlbum .dropdown-item:active,
+        #dropdownDenunciarAlbum .dropdown-item:focus,
+        #dropdownDenunciarAlbum .dropdown-item:hover {
+            background-color: transparent !important;
+            color: #dc3545 !important;
+        }
+
     </style>
 
     <div class="modal fade" id="modalDetalleAlbum" tabindex="-1" aria-labelledby="modalDetalleAlbumLabel" aria-hidden="true">
@@ -503,6 +523,24 @@ include VIEW_PATH . '/nav.php';
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <button id="btnSeguir" class="btn btn-outline-primary btn-sm">Seguir</button>
+                        <!-- Menú de 3 puntitos para denunciar (solo para álbumes ajenos) -->
+                        <div class="dropdown" id="dropdownDenunciarAlbum" style="display: none;">
+                            <button class="btn btn-light btn-sm opciones-btn" data-bs-toggle="dropdown" aria-expanded="false" type="button">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item text-danger" href="#" id="btnDenunciarAlbum">
+                                        <i class="bi bi-flag me-2"></i>Denunciar álbum
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="#" id="btnDenunciarImagen">
+                                        <i class="bi bi-flag me-2"></i>Denunciar imagen actual
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
                 </div>

@@ -141,13 +141,29 @@ document.addEventListener("DOMContentLoaded", () => {
         
         const btnSeguir = document.getElementById("btnSeguir");
         if (btnSeguir) {
-          btnSeguir.setAttribute("data-id", data.idUsuario);
-          btnSeguir.setAttribute("data-id-seguido", data.idUsuario);
-          
-          // Verificar y actualizar estado del botón seguir después de un pequeño delay
-          setTimeout(() => {
-            verificarEstadoSeguirModal(btnSeguir, data.idUsuario);
-          }, 100);
+          // Si el usuario actual es el propietario del álbum, ocultar el botón
+          if (data.esPropietario) {
+            btnSeguir.style.display = 'none';
+          } else {
+            btnSeguir.style.display = '';
+            btnSeguir.setAttribute("data-id", data.idUsuario);
+            btnSeguir.setAttribute("data-id-seguido", data.idUsuario);
+            
+            // Verificar y actualizar estado del botón seguir después de un pequeño delay
+            setTimeout(() => {
+              verificarEstadoSeguirModal(btnSeguir, data.idUsuario);
+            }, 100);
+          }
+        }
+
+        // Mostrar/ocultar menú de denunciar según si es propietario
+        const dropdownDenunciar = document.getElementById("dropdownDenunciarAlbum");
+        if (dropdownDenunciar) {
+          if (data.esPropietario) {
+            dropdownDenunciar.style.display = 'none';
+          } else {
+            dropdownDenunciar.style.display = '';
+          }
         }
         
         modalBodyIzq.innerHTML = data.izquierda;
@@ -606,12 +622,28 @@ window.cargarDetalleLikesUsuario = async function(idUsuario) {
     
     const btnSeguir = document.getElementById("btnSeguir");
     if (btnSeguir) {
-      btnSeguir.setAttribute("data-id", data.idUsuario);
-      btnSeguir.setAttribute("data-id-seguido", data.idUsuario);
-      
-      setTimeout(() => {
-        verificarEstadoSeguirModal(btnSeguir, data.idUsuario);
-      }, 100);
+      // Si el usuario actual es el propietario, ocultar el botón
+      if (data.esPropietario) {
+        btnSeguir.style.display = 'none';
+      } else {
+        btnSeguir.style.display = '';
+        btnSeguir.setAttribute("data-id", data.idUsuario);
+        btnSeguir.setAttribute("data-id-seguido", data.idUsuario);
+        
+        setTimeout(() => {
+          verificarEstadoSeguirModal(btnSeguir, data.idUsuario);
+        }, 100);
+      }
+    }
+
+    // Mostrar/ocultar menú de denunciar según si es propietario (en "Me gusta" siempre será false)
+    const dropdownDenunciar = document.getElementById("dropdownDenunciarAlbum");
+    if (dropdownDenunciar) {
+      if (data.esPropietario) {
+        dropdownDenunciar.style.display = 'none';
+      } else {
+        dropdownDenunciar.style.display = '';
+      }
     }
     
     modalBodyIzq.innerHTML = data.izquierda;

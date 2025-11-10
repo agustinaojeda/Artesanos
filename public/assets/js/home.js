@@ -215,13 +215,29 @@ document.querySelectorAll(".abrir-modal-album").forEach((el) => {
         
         const btnSeguir = document.getElementById("btnSeguir");
         if (btnSeguir) {
-          btnSeguir.setAttribute("data-id", data.idUsuario);
-          btnSeguir.setAttribute("data-id-seguido", data.idUsuario);
-          
-          // Verificar y actualizar estado del botón seguir después de un pequeño delay
-          setTimeout(() => {
-            verificarEstadoSeguir(btnSeguir, data.idUsuario);
-          }, 100);
+          // Si el usuario actual es el propietario del álbum, ocultar el botón
+          if (data.esPropietario) {
+            btnSeguir.style.display = 'none';
+          } else {
+            btnSeguir.style.display = '';
+            btnSeguir.setAttribute("data-id", data.idUsuario);
+            btnSeguir.setAttribute("data-id-seguido", data.idUsuario);
+            
+            // Verificar y actualizar estado del botón seguir después de un pequeño delay
+            setTimeout(() => {
+              verificarEstadoSeguir(btnSeguir, data.idUsuario);
+            }, 100);
+          }
+        }
+
+        // Mostrar/ocultar menú de denunciar según si es propietario
+        const dropdownDenunciar = document.getElementById("dropdownDenunciarAlbum");
+        if (dropdownDenunciar) {
+          if (data.esPropietario) {
+            dropdownDenunciar.style.display = 'none';
+          } else {
+            dropdownDenunciar.style.display = '';
+          }
         }
 
         document.getElementById("detalleAlbumIzquierda").innerHTML =
