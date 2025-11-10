@@ -32,6 +32,176 @@ class AlbumModelo
         cerrarConexion($conexion);
         return $a;
     }
+    public function actualizarAlbum($idAlbum, $titulo, $esPublico, $nuevaPortada = null) {
+        $conexion = abrirConexion();
+
+        $sql = "UPDATE album SET tituloAlbum = ?, esPublicoAlbum = ?";
+        if ($nuevaPortada !== null) {
+            $sql .= ", urlPortadaAlbum = ?";
+        }
+        $sql .= " WHERE idAlbum = ?";
+
+        $stmt = $conexion->prepare($sql);
+        if (!$stmt) {
+            cerrarConexion($conexion);
+            return false;
+        }
+
+        $esPublicoInt = (int)$esPublico;
+        $idAlbumInt   = (int)$idAlbum;
+
+        if ($nuevaPortada !== null) {
+            // s i s i  => string, int, string, int
+            $stmt->bind_param("sisi", $titulo, $esPublicoInt, $nuevaPortada, $idAlbumInt);
+        } else {
+            // s i i    => string, int, int
+            $stmt->bind_param("sii", $titulo, $esPublicoInt, $idAlbumInt);
+        }
+
+        $ok = $stmt->execute();
+        $stmt->close();
+        cerrarConexion($conexion);
+        return (bool)$ok;
+    }
+
+    /**
+     * Elimina solo la portada de un álbum (pone imagen.png por defecto)
+     * @param int $idAlbum El ID del álbum
+     * @return bool True si se actualizó correctamente
+     */
+    public function eliminarPortadaAlbum(int $idAlbum): bool
+    {
+        $conexion = abrirConexion();
+        
+        // Poner imagen.png por defecto en lugar de NULL
+        $imagenDefault = 'imagen.png';
+        $sql = "UPDATE album SET urlPortadaAlbum = ? WHERE idAlbum = ?";
+        $stmt = $conexion->prepare($sql);
+        if (!$stmt) {
+            cerrarConexion($conexion);
+            return false;
+        }
+        
+        $idAlbumInt = (int)$idAlbum;
+        $stmt->bind_param("si", $imagenDefault, $idAlbumInt);
+        $ok = $stmt->execute();
+        $stmt->close();
+        cerrarConexion($conexion);
+        
+        return (bool)$ok;
+    }
+    public function getPortadaActual(int $idAlbum, ?int $idUsuario = null): ?string
+    {
+        $cn = abrirConexion();
+
+        // Si quieres validar propiedad aquí también, usa el $idUsuario (opcional).
+        if ($idUsuario !== null) {
+            $sql = "SELECT urlPortadaAlbum 
+                    FROM album 
+                    WHERE idAlbum = ? AND idUsuarioAlbum = ?
+                    LIMIT 1";
+            $stmt = $cn->prepare($sql);
+            if (!$stmt) { cerrarConexion($cn); return null; }
+            $stmt->bind_param("ii", $idAlbum, $idUsuario);
+        } else {
+            $sql = "SELECT urlPortadaAlbum 
+                    FROM album 
+                    WHERE idAlbum = ?
+                    LIMIT 1";
+            $stmt = $cn->prepare($sql);
+            if (!$stmt) { cerrarConexion($cn); return null; }
+            $stmt->bind_param("i", $idAlbum);
+        }
+
+        $stmt->execute();
+        $stmt->bind_result($portada);
+        $stmt->fetch();
+        $stmt->close();
+        cerrarConexion($cn);
+
+        if (!$portada) return null;
+
+        // Normaliza: si por alguna razón quedó guardada una ruta/URL completa,
+        // devuelve sólo el nombre de archivo esperado en /uploads/portadas.
+        $basename = basename($portada);
+        return $basename !== '' ? $basename : null;
+    }
+
+    public function listarImagenesDeAlbum(int $idAlbum): array
+    {
+        $cn = abrirConexion();
+
+        $sql = "SELECT 
+                    idImagen,
+                    tituloImagen,
+                    descripcionImagen,
+                    urlImagen,
+                    idAlbumImagen
+                FROM imagen
+                WHERE idAlbumImagen = ?
+                ORDER BY idImagen DESC";
+
+        $stmt = $cn->prepare($sql);
+        if (!$stmt) { 
+            cerrarConexion($cn); 
+            return []; 
+        }
+        $stmt->bind_param("i", $idAlbum);
+
+        $ok = $stmt->execute();
+        if (!$ok) {
+            $stmt->close();
+            cerrarConexion($cn);
+            return [];
+        }
+
+        // ✅ Soporta entornos SIN mysqlnd (sin get_result)
+        $rows = [];
+        if (method_exists($stmt, 'get_result')) {
+            $res = $stmt->get_result();
+            if ($res) {
+                $rows = $res->fetch_all(MYSQLI_ASSOC);
+            } else {
+                // Fallback manual
+                $stmt->store_result();
+                $idImagen = $tituloImagen = $descripcionImagen = $urlImagen = null; $idAlbumImagen = 0;
+                $stmt->bind_result($idImagen, $tituloImagen, $descripcionImagen, $urlImagen, $idAlbumImagen);
+                while ($stmt->fetch()) {
+                    $rows[] = [
+                        'idImagen'         => (int)$idImagen,
+                        'tituloImagen'     => (string)$tituloImagen,
+                        'descripcionImagen'=> (string)$descripcionImagen,
+                        'urlImagen'        => (string)$urlImagen,
+                        'idAlbumImagen'    => (int)$idAlbumImagen,
+                    ];
+                }
+            }
+        } else {
+            // Fallback manual
+            $stmt->store_result();
+            $idImagen = $tituloImagen = $descripcionImagen = $urlImagen = null; $idAlbumImagen = 0;
+            $stmt->bind_result($idImagen, $tituloImagen, $descripcionImagen, $urlImagen, $idAlbumImagen);
+            while ($stmt->fetch()) {
+                $rows[] = [
+                    'idImagen'         => (int)$idImagen,
+                    'tituloImagen'     => (string)$tituloImagen,
+                    'descripcionImagen'=> (string)$descripcionImagen,
+                    'urlImagen'        => (string)$urlImagen,
+                    'idAlbumImagen'    => (int)$idAlbumImagen,
+                ];
+            }
+        }
+
+        $stmt->close();
+        cerrarConexion($cn);
+
+        // Normaliza nombre de archivo por si guardaste ruta completa
+        foreach ($rows as &$r) {
+            $r['urlImagen'] = basename((string)$r['urlImagen']);
+        }
+        return $rows;
+    }
+
 
     public function crearAlbum(Album $album)
     { //inserta el album a la bd

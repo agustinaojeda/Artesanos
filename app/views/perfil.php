@@ -172,7 +172,116 @@ $conexion->close();
 $pageTitle = 'Artesanos - Perfil';
 include VIEW_PATH . '/header.php'; 
 include VIEW_PATH . '/nav.php'; 
+$likedContentByUser = [];
+$sqlLikedByUser = "
+    SELECT DISTINCT 
+        u.idUsuario,
+        u.nombreUsuario,
+        u.apodoUsuario,
+        u.arrobaUsuario,
+        (
+            SELECT fp.imagenPerfil
+            FROM fotosdeperfil fp
+            WHERE fp.idFotoPerfil = u.idFotoPerfilUsuario
+            LIMIT 1
+        ) as avatarUrl,
+        GROUP_CONCAT(DISTINCT CONCAT('album:', a.idAlbum)) as albumLikes,
+        GROUP_CONCAT(DISTINCT CONCAT('image:', i.idImagen)) as imageLikes
+    FROM usuario u
+    LEFT JOIN album a ON a.idUsuarioAlbum = u.idUsuario
+    LEFT JOIN megusta_album ma ON ma.idAlbumLike = a.idAlbum AND ma.idUsuarioLike = ?
+    LEFT JOIN imagen i ON i.idAlbumImagen = a.idAlbum
+    LEFT JOIN megusta m ON m.idImagenLike = i.idImagen AND m.idUsuarioLike = ?
+    WHERE u.idUsuario IN (
+        SELECT idSeguido 
+        FROM seguimiento 
+        WHERE idSeguidor = ? 
+        AND estadoSeguimiento = 'activo'
+    )
+    AND (ma.idAlbumLike IS NOT NULL OR m.idImagenLike IS NOT NULL)
+    GROUP BY u.idUsuario, u.nombreUsuario, u.apodoUsuario, u.arrobaUsuario
+";
 
+$stmtLikedByUser = $conexion->prepare($sqlLikedByUser);
+if ($stmtLikedByUser) {
+    $stmtLikedByUser->bind_param("iii", $perfilId, $perfilId, $perfilId);
+    $stmtLikedByUser->execute();
+    $resLikedByUser = $stmtLikedByUser->get_result();
+    
+    while ($row = $resLikedByUser->fetch_assoc()) {
+        $userId = $row['idUsuario'];
+        $likedContentByUser[$userId] = [
+            'user' => [
+                'idUsuario' => $row['idUsuario'],
+                'nombreUsuario' => $row['nombreUsuario'],
+                'apodoUsuario' => $row['apodoUsuario'],
+                'arrobaUsuario' => $row['arrobaUsuario'],
+                'avatarUrl' => $row['avatarUrl']
+            ],
+            'albums' => [],
+            'images' => []
+        ];
+        
+        // Procesar álbumes
+        if ($row['albumLikes']) {
+            $albumIds = array_map(function($item) {
+                return (int)substr($item, 6); // Remover 'album:' y convertir a int
+            }, explode(',', $row['albumLikes']));
+            
+            // Obtener detalles de los álbumes
+            $sqlAlbumDetails = "
+                SELECT 
+                    a.idAlbum, 
+                    a.tituloAlbum as nombreAlbum, 
+                    a.urlPortadaAlbum,
+                    a.fechaCreacionAlbum,
+                    COUNT(DISTINCT ma.idUsuarioLike) as totalLikes
+                FROM album a
+                LEFT JOIN megusta_album ma ON ma.idAlbumLike = a.idAlbum
+                WHERE a.idAlbum IN (" . implode(',', $albumIds) . ")
+                GROUP BY a.idAlbum
+            ";
+            
+            $albumResult = $conexion->query($sqlAlbumDetails);
+            if ($albumResult) {
+                while ($album = $albumResult->fetch_assoc()) {
+                    $likedContentByUser[$userId]['albums'][] = $album;
+                }
+            }
+        }
+        
+        // Procesar imágenes
+        if ($row['imageLikes']) {
+            $imageIds = array_map(function($item) {
+                return (int)substr($item, 6); // Remover 'image:' y convertir a int
+            }, explode(',', $row['imageLikes']));
+            
+            // Obtener detalles de las imágenes
+            $sqlImageDetails = "
+                SELECT 
+                    i.idImagen,
+                    i.tituloImagen,
+                    i.urlImagen,
+                    i.idAlbumImagen,
+                    a.tituloAlbum as nombreAlbum,
+                    COUNT(DISTINCT m.idUsuarioLike) as totalLikes
+                FROM imagen i
+                JOIN album a ON a.idAlbum = i.idAlbumImagen
+                LEFT JOIN megusta m ON m.idImagenLike = i.idImagen
+                WHERE i.idImagen IN (" . implode(',', $imageIds) . ")
+                GROUP BY i.idImagen
+            ";
+            
+            $imageResult = $conexion->query($sqlImageDetails);
+            if ($imageResult) {
+                while ($image = $imageResult->fetch_assoc()) {
+                    $likedContentByUser[$userId]['images'][] = $image;
+                }
+            }
+        }
+    }
+    $stmtLikedByUser->close();
+}
 ?>
     <link rel="stylesheet" href="<?= $basePath ?>/assets/css/perfil.css">
     <link rel="stylesheet" href="<?= $basePath ?>/assets/css/modalEliminarAlbum.css">
@@ -419,7 +528,87 @@ include VIEW_PATH . '/nav.php';
             </div>
         </div>
     </div>
+<!-- Agregar esto después de tus otros modales -->
+<div class="modal fade" id="modalEditarAlbum" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg"> <!-- Changed to modal-lg for more space -->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar álbum</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Album Info Section -->
+                <form id="formEditarAlbum">
+                    <input type="hidden" name="idAlbum" id="editAlbumId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Título del álbum</label>
+                        <input type="text" class="form-control" name="titulo" id="editAlbumTitulo" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Portada</label>
+                        <input type="file" class="form-control" name="portada" accept="image/*">
+                        <div class="position-relative d-inline-block mt-2" id="portadaPreviewContainer" style="display: none;">
+                            <img id="editAlbumPortadaPreview" style="max-width: 200px; display: block;">
+                            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 eliminar-portada-btn" 
+                                    style="z-index: 10; opacity: 0.9;"
+                                    title="Eliminar portada">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Privacidad</label>
+                        <select name="esPublico" class="form-select">
+                            <option value="1">Público</option>
+                            <option value="0">Solo seguidores</option>
+                        </select>
+                    </div>
+                </form>
 
+                <!-- Images Section -->
+                <hr>
+                <h6 class="mt-4">Imágenes del álbum</h6>
+                <div id="albumImagesList" class="row g-3 mt-2">
+                    <!-- Images will be loaded here dynamically -->
+                </div>
+                
+                <!-- Input oculto para agregar nuevas imágenes -->
+                <input type="file" id="inputNuevasImagenes" multiple accept="image/*" style="display: none;">
+
+                <!-- Image Edit Form (initially hidden) -->
+                <div id="imageEditForm" class="mt-4 d-none">
+                    <hr>
+                    <h6>Editar imagen</h6>
+                    <form id="formEditarImagen">
+                        <input type="hidden" id="editImagenId" name="idImagen">
+                        <div class="mb-3">
+                            <label class="form-label">Título de la imagen</label>
+                            <input type="text" class="form-control" id="editImagenTitulo" name="tituloImagen" placeholder="Título de la imagen">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" id="editImagenDescripcion" name="descripcionImagen" rows="3" placeholder="Descripción de la imagen"></textarea>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-secondary" id="btnCancelarEditarImagen">Cancelar</button>
+                            <button type="button" class="btn btn-sm btn-orange-full" id="btnGuardarImagen">Guardar cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success-full" id="btnAgregarImagenes">
+                    <i class="bi bi-plus-circle"></i> Agregar imágenes
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-orange-full" id="btnGuardarEdicion">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
     <div class="container profile-top">
         <div class="profile-grid align-items-center">
             <div class="box box-avatar">
@@ -518,9 +707,13 @@ include VIEW_PATH . '/nav.php';
                     <div class="album-grid">
                         <?php foreach ($albums as $album): ?>
                             <?php
-                            $coverUrl = $album['urlPortadaAlbum']
-                                ? "$basePath/uploads/portadas/" . e($album['urlPortadaAlbum'])
-                                : "$basePath/assets/images/imagen.png";
+                            // Si urlPortadaAlbum es 'imagen.png' o está vacío, usar la imagen por defecto
+                            $portada = $album['urlPortadaAlbum'] ?? '';
+                            if (empty($portada) || $portada === 'imagen.png') {
+                                $coverUrl = "$basePath/assets/images/imagen.png";
+                            } else {
+                                $coverUrl = "$basePath/uploads/portadas/" . e($portada);
+                            }
 
                             // ✅ Agregá esta línea
                             $albumDate = new DateTime($album['fechaCreacionAlbum']);
@@ -580,66 +773,48 @@ include VIEW_PATH . '/nav.php';
             </div>
 
             <div class="tab-pane fade" id="likes-tab">
-                <!-- Álbumes con Me Gusta -->
-                <h3 class="mb-3">Álbumes que le gustan (<?= count($likedAlbums) ?>)</h3>
-                <?php if (empty($likedAlbums)): ?>
-                    <p class="text-muted">No hay álbumes con “Me gusta”.</p>
-                <?php else: ?>
-                    <div class="album-grid mb-4">
-                        <?php foreach ($likedAlbums as $album): ?>
-                            <?php
-                                $coverUrl = $album['urlPortadaAlbum']
-                                    ? "$basePath/uploads/portadas/" . e($album['urlPortadaAlbum'])
-                                    : "$basePath/assets/images/imagen.png";
-                                $albumDate = new DateTime($album['fechaCreacionAlbum']);
-                            ?>
-                            <div class="album-card" data-id="<?= (int)$album['idAlbum'] ?>" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum">
-                                <div class="album-img-wrapper">
-                                    <img src="<?= $coverUrl ?>" alt="Portada de álbum" class="album-img">
-                                </div>
-                                <div class="album-info">
-                                    <h5><?= e($album['nombreAlbum']) ?></h5>
-                                    <small class="text-muted"><?= $albumDate->format('d/m/Y') ?></small>
-                                    <div class="d-flex gap-1 align-items-center mt-1">
-                                        <img src="<?= $basePath ?>/assets/images/like.png"
-                                             alt="Me gusta"
-                                             class="img-fluid btn-like-galeria"
-                                             data-idalbum="<?= (int)$album['idAlbum'] ?>"
-                                             style="max-height: 25px; cursor: pointer;">
-                                        <span id="likes-count-album-<?= (int)$album['idAlbum'] ?>" class="text-muted small align-self-center">0</span>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Imágenes con Me Gusta -->
-                <h3 class="mb-3">Imágenes que le gustan (<?= count($likedImages) ?>)</h3>
-                <?php if (empty($likedImages)): ?>
-                    <p class="text-muted">No hay imágenes con “Me gusta”.</p>
+                <h3 class="mb-4">Contenido que te gusta de usuarios que sigues</h3>
+                <?php if (empty($likedContentByUser)): ?>
+                    <p class="text-muted text-center py-5">No hay contenido con "Me gusta" de usuarios que sigues.</p>
                 <?php else: ?>
                     <div class="album-grid">
-                        <?php foreach ($likedImages as $img): ?>
+                        <?php foreach ($likedContentByUser as $userId => $userData): ?>
                             <?php
-                                $imgUrl = $img['urlImagen']
-                                    ? "$basePath/uploads/imagenes/" . e($img['urlImagen'])
-                                    : "$basePath/assets/images/imagen.png";
+                            // Obtener la primera imagen para mostrar como preview
+                            $previewImage = null;
+                            $previewId = null;
+                            if (!empty($userData['albums'])) {
+                                $previewImage = $userData['albums'][0]['urlPortadaAlbum'];
+                                $previewPath = "$basePath/uploads/portadas/";
+                                $previewId = $userData['albums'][0]['idAlbum'];
+                            } elseif (!empty($userData['images'])) {
+                                $previewImage = $userData['images'][0]['urlImagen'];
+                                $previewPath = "$basePath/uploads/imagenes/";
+                                $previewId = $userData['images'][0]['idAlbumImagen'];
+                            }
                             ?>
-                            <div class="album-card" data-id="<?= (int)$img['idAlbumImagen'] ?>" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum" title="<?= e($img['tituloImagen'] ?? '') ?>">
+                            
+                            <!-- Card del usuario que abre el modal de detalle -->
+                            <div class="album-card position-relative" 
+                                data-id="<?= $previewId ?>"
+                                data-user-id="<?= $userId ?>"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#modalDetalleAlbum"
+                                onclick="cargarDetalleAlbum(null, this.dataset.userId);">
                                 <div class="album-img-wrapper">
-                                    <img src="<?= $imgUrl ?>" alt="Imagen con Me Gusta" class="album-img">
+                                    <img src="<?= $previewImage ? $previewPath . e($previewImage) : "$basePath/assets/images/imagen.png" ?>" 
+                                        alt="Preview" class="album-img">
                                 </div>
                                 <div class="album-info">
-                                    <h5><?= e($img['tituloImagen'] ?? 'Sin título') ?></h5>
-                                    <small class="text-muted">Álbum: <?= e($img['nombreAlbum'] ?? '') ?></small>
-                                    <div class="d-flex gap-1 align-items-center mt-1">
-                                        <img src="<?= $basePath ?>/assets/images/like.png"
-                                             alt="Me gusta imagen"
-                                             class="img-fluid btn-like-imagen-perfil"
-                                             data-idimagen="<?= (int)$img['idImagen'] ?>"
-                                             style="max-height: 25px; cursor: pointer;">
-                                        <span id="likes-count-image-<?= (int)$img['idImagen'] ?>" class="text-muted small align-self-center">0</span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <img src="<?= $basePath ?>/uploads/avatares/<?= e($userData['user']['avatarUrl'] ?? 'default.png') ?>" 
+                                            alt="Avatar" 
+                                            class="rounded-circle"
+                                            style="width: 30px; height: 30px; object-fit: cover;">
+                                        <div>
+                                            <h5 class="mb-0"><?= e($userData['user']['apodoUsuario']) ?></h5>
+                                            <small class="text-muted">@<?= e(ltrim($userData['user']['arrobaUsuario'], '@')) ?></small>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -704,8 +879,185 @@ include VIEW_PATH . '/nav.php';
             <p>El álbum fue eliminado correctamente.</p>
         </div>
         </div>
+<script>
+    const basePath = '<?= $basePath ?>'; // Define basePath globalmente
+</script>
+<script>
+function cargarDetalleAlbum(albumId, userId = null) {
+    const url = userId 
+        ? `${basePath}/api/detalleAlbum?id=${albumId}&userId=${userId}&showAll=true`
+        : `${basePath}/api/detalleAlbum?id=${albumId}`;
 
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const modal = document.getElementById('modalDetalleAlbum');
+            const modalLabel = modal.querySelector('#modalDetalleAlbumLabel');
+            const modalBodyIzq = modal.querySelector('#detalleAlbumIzquierda');
+            const modalBodyDer = modal.querySelector('#detalleAlbumDerecha');
+            const fotoPerfil = modal.querySelector('#modalFotoPerfil');
 
+            // Actualizar contenido
+            if (data.usuario) {
+                modalLabel.textContent = data.usuario.apodoUsuario;
+                if (data.usuario.avatarUrl) {
+                    fotoPerfil.src = `${basePath}/uploads/avatares/${data.usuario.avatarUrl}`;
+                }
+            }
+            modalBodyIzq.innerHTML = data.htmlIzquierda;
+            modalBodyDer.innerHTML = data.htmlDerecha;
+
+            // Inicializar carrusel
+            const carrusel = document.getElementById('carouselAlbum');
+            if (carrusel) {
+                new bootstrap.Carousel(carrusel, { interval: false });
+            }
+        })
+        .catch(error => console.error('Error:', error));
+}
+</script>
+<script>
+function renderAlbumImages(list) {
+  const cont = document.getElementById('albumImagesList');
+  if (!cont) return;
+
+  if (!list || list.length === 0) {
+    cont.innerHTML = `
+      <div class="col-12">
+        <p class="text-muted mb-0">Este álbum no tiene imágenes todavía.</p>
+      </div>`;
+    return;
+  }
+
+  // pinta cards Bootstrap con miniaturas y botón de eliminar
+  cont.innerHTML = list.map(row => {
+    const imgUrl = `${basePath}/uploads/imagenes/${encodeURIComponent(row.urlImagen)}`;
+    const titulo = row.tituloImagen ? row.tituloImagen : '(Sin título)';
+    const desc   = row.descripcionImagen ? row.descripcionImagen : '';
+
+    return `
+      <div class="col-12 col-sm-6 col-md-4" data-imagen-id="${row.idImagen}">
+        <div class="card h-100 shadow-sm position-relative">
+          <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 eliminar-imagen-btn" 
+                  data-imagen-id="${row.idImagen}" 
+                  style="z-index: 10; opacity: 0.9;"
+                  title="Eliminar imagen">
+            <i class="bi bi-trash"></i>
+          </button>
+          <div class="ratio ratio-1x1 editar-imagen-card" style="cursor: pointer;" 
+               data-imagen-id="${row.idImagen}"
+               data-titulo="${escapeHtml(titulo)}"
+               data-descripcion="${escapeHtml(desc)}">
+            <img src="${imgUrl}" class="card-img-top" alt="${titulo}" style="object-fit: cover;">
+          </div>
+          <div class="card-body p-2">
+            <div class="fw-semibold text-truncate" title="${titulo}">${titulo}</div>
+            <div class="text-muted small text-truncate" title="${desc}">${desc}</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  
+  // Agregar event listeners a los botones de eliminar
+  cont.querySelectorAll('.eliminar-imagen-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const idImagen = this.dataset.imagenId;
+      if (confirm('¿Estás seguro de que querés eliminar esta imagen?')) {
+        eliminarImagen(idImagen);
+      }
+    });
+  });
+  
+  // Agregar event listeners para editar imágenes (click en la imagen)
+  cont.querySelectorAll('.editar-imagen-card').forEach(card => {
+    card.addEventListener('click', function(e) {
+      // No abrir si se hizo click en el botón de eliminar
+      if (e.target.closest('.eliminar-imagen-btn')) return;
+      
+      const idImagen = this.dataset.imagenId;
+      const titulo = this.dataset.titulo || '';
+      const descripcion = this.dataset.descripcion || '';
+      
+      abrirModalEditarImagen(idImagen, titulo, descripcion);
+    });
+  });
+}
+
+// Función auxiliar para escapar HTML
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Función para abrir modal de editar imagen
+function abrirModalEditarImagen(idImagen, titulo, descripcion) {
+  document.getElementById('editImagenId').value = idImagen;
+  document.getElementById('editImagenTitulo').value = titulo === '(Sin título)' ? '' : titulo;
+  document.getElementById('editImagenDescripcion').value = descripcion;
+  document.getElementById('imageEditForm').classList.remove('d-none');
+  
+  // Scroll al formulario
+  document.getElementById('imageEditForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function loadAlbumImagesForEdit(idAlbum) {
+  const url = `${basePath}/api/imagenesDeAlbum?idAlbum=${encodeURIComponent(idAlbum)}`;
+  try {
+    const res = await fetch(url, { credentials: 'same-origin' });
+    const data = await res.json();
+    if (data.success) {
+      renderAlbumImages(data.data);
+    } else {
+      console.error('imagenesDeAlbum:', data.message);
+      renderAlbumImages([]);
+    }
+  } catch (e) {
+    console.error(e);
+    renderAlbumImages([]);
+  }
+}
+
+// Función para eliminar una imagen
+async function eliminarImagen(idImagen) {
+  try {
+    const formData = new FormData();
+    formData.append('idImagen', idImagen);
+    
+    const res = await fetch(`${basePath}/api/eliminarImagen`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'same-origin'
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      // Eliminar el elemento del DOM
+      const elemento = document.querySelector(`[data-imagen-id="${idImagen}"]`);
+      if (elemento) {
+        elemento.remove();
+      }
+      
+      // Si no quedan imágenes, mostrar mensaje
+      const cont = document.getElementById('albumImagesList');
+      if (cont && cont.querySelectorAll('[data-imagen-id]').length === 0) {
+        cont.innerHTML = `
+          <div class="col-12">
+            <p class="text-muted mb-0">Este álbum no tiene imágenes todavía.</p>
+          </div>`;
+      }
+    } else {
+      alert('Error: ' + (data.message || 'No se pudo eliminar la imagen'));
+    }
+  } catch (e) {
+    console.error(e);
+    alert('Error de red al eliminar la imagen');
+  }
+}
+</script>
 
     <!-- Bootstrap JS -->
     <script src="<?= $basePath ?>/assets/js/perfil.js"></script>
@@ -768,6 +1120,7 @@ include VIEW_PATH . '/nav.php';
             }
           });
         }
+        
       })();
     </script>
     <script>
@@ -1036,6 +1389,310 @@ document.addEventListener("DOMContentLoaded", () => {
     bsToast.show();
     toast.addEventListener("hidden.bs.toast", () => toast.remove());
   }
+});
+document.addEventListener('DOMContentLoaded', function() {
+    // Preview cover image when selected
+    document.querySelector('input[name="portada"]').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            const preview = document.getElementById('editAlbumPortadaPreview');
+            
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                const container = document.getElementById('portadaPreviewContainer');
+                if (container) {
+                    container.style.display = 'block';
+                } else {
+                    preview.style.display = 'block';
+                }
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Botón para eliminar portada
+    const btnEliminarPortada = document.querySelector('.eliminar-portada-btn');
+    if (btnEliminarPortada) {
+        btnEliminarPortada.addEventListener('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const idAlbum = document.getElementById('editAlbumId').value;
+            if (!idAlbum) {
+                alert('Error: No se encontró el ID del álbum');
+                return;
+            }
+            
+            if (!confirm('¿Estás seguro de que querés eliminar la portada?')) {
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('idAlbum', idAlbum);
+                
+                const res = await fetch(`${basePath}/api/eliminarPortadaAlbum`, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    // Actualizar preview con imagen por defecto
+                    const container = document.getElementById('portadaPreviewContainer');
+                    const preview = document.getElementById('editAlbumPortadaPreview');
+                    if (preview) {
+                        // Cambiar a imagen por defecto
+                        preview.src = `${basePath}/assets/images/imagen.png`;
+                        if (container) {
+                            container.style.display = 'block';
+                        } else {
+                            preview.style.display = 'block';
+                        }
+                    }
+                    // Limpiar input
+                    document.querySelector('input[name="portada"]').value = '';
+                    alert('Portada eliminada correctamente');
+                } else {
+                    alert('Error: ' + (data.message || 'No se pudo eliminar la portada'));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error de red al eliminar la portada');
+            }
+        });
+    }
+
+    // Show current cover when opening modal
+    document.querySelectorAll('.editar-album').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const albumId = this.dataset.id;
+            const card = this.closest('.album-card');
+            const titulo = card.querySelector('h5').textContent;
+            const portadaActual = card.querySelector('img').src;
+            
+            // Obtener datos completos del álbum
+            try {
+                const res = await fetch(`${basePath}/api/obtenerDatosAlbum?idAlbum=${encodeURIComponent(albumId)}`, {
+                    credentials: 'same-origin'
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    // Set values in modal
+                    document.getElementById('editAlbumId').value = data.data.idAlbum;
+                    document.getElementById('editAlbumTitulo').value = data.data.titulo;
+                    
+                    // Set privacidad
+                    const selectPrivacidad = document.querySelector('select[name="esPublico"]');
+                    if (selectPrivacidad) {
+                        selectPrivacidad.value = data.data.esPublico;
+                    }
+                } else {
+                    // Fallback a valores del card
+                    document.getElementById('editAlbumId').value = albumId;
+                    document.getElementById('editAlbumTitulo').value = titulo;
+                }
+            } catch (e) {
+                console.error('Error al obtener datos del álbum:', e);
+                // Fallback a valores del card
+                document.getElementById('editAlbumId').value = albumId;
+                document.getElementById('editAlbumTitulo').value = titulo;
+            }
+            
+            // Show current cover
+            const preview = document.getElementById('editAlbumPortadaPreview');
+            const container = document.getElementById('portadaPreviewContainer');
+            if (preview) {
+                preview.src = portadaActual;
+                if (container) {
+                    container.style.display = 'block';
+                } else {
+                    preview.style.display = 'block';
+                }
+            }
+            // Ocultar formulario de edición de imagen al abrir modal
+            document.getElementById('imageEditForm').classList.add('d-none');
+            loadAlbumImagesForEdit(albumId);
+            new bootstrap.Modal(document.getElementById('modalEditarAlbum')).show();
+        });
+    });
+
+    // Botón para agregar nuevas imágenes
+    const btnAgregarImagenes = document.getElementById('btnAgregarImagenes');
+    const inputNuevasImagenes = document.getElementById('inputNuevasImagenes');
+    
+    if (btnAgregarImagenes && inputNuevasImagenes) {
+        btnAgregarImagenes.addEventListener('click', function() {
+            inputNuevasImagenes.click();
+        });
+        
+        inputNuevasImagenes.addEventListener('change', async function() {
+            const files = Array.from(this.files);
+            if (files.length === 0) return;
+            
+            const idAlbum = document.getElementById('editAlbumId').value;
+            if (!idAlbum) {
+                alert('Error: No se encontró el ID del álbum');
+                return;
+            }
+            
+            // Crear FormData con las nuevas imágenes
+            const formData = new FormData();
+            formData.append('idAlbum', idAlbum);
+            formData.append('cantidadImagenes', files.length);
+            
+            files.forEach((file, index) => {
+                formData.append(`imagen${index}`, file);
+                formData.append(`tituloImagen${index}`, '');
+                formData.append(`descripcionImagen${index}`, '');
+                formData.append(`etiquetaImagen${index}`, '');
+            });
+            
+            try {
+                const res = await fetch(`${basePath}/api/agregarImagenesAlbum`, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    // Recargar las imágenes del álbum
+                    await loadAlbumImagesForEdit(idAlbum);
+                    // Ocultar formulario de edición si estaba abierto
+                    document.getElementById('imageEditForm').classList.add('d-none');
+                    
+                    // Si solo se agregó una imagen, abrir el formulario de edición automáticamente
+                    if (files.length === 1) {
+                        // Esperar a que se recarguen las imágenes y obtener la primera (más reciente)
+                        setTimeout(async () => {
+                            try {
+                                const url = `${basePath}/api/imagenesDeAlbum?idAlbum=${encodeURIComponent(idAlbum)}`;
+                                const res = await fetch(url, { credentials: 'same-origin' });
+                                const data = await res.json();
+                                if (data.success && data.data && data.data.length > 0) {
+                                    // La primera imagen es la más reciente (ordenadas DESC)
+                                    const nuevaImagen = data.data[0];
+                                    abrirModalEditarImagen(nuevaImagen.idImagen, nuevaImagen.tituloImagen || '', nuevaImagen.descripcionImagen || '');
+                                }
+                            } catch (e) {
+                                console.error('Error al obtener imagen nueva:', e);
+                            }
+                        }, 500);
+                    }
+                    
+                    alert(data.message || 'Imágenes agregadas correctamente');
+                    // Limpiar el input
+                    this.value = '';
+                } else {
+                    alert('Error: ' + (data.message || 'No se pudieron agregar las imágenes'));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error de red al agregar las imágenes');
+            }
+        });
+    }
+
+    // Handle form submission
+    document.getElementById('btnGuardarEdicion').addEventListener('click', async function () {
+    const form = document.getElementById('formEditarAlbum');
+    const formData = new FormData(form);
+
+    try {
+        const res = await fetch(`${basePath}/api/editarAlbum`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin', // importante para la cookie de sesión
+        });
+
+        const raw = await res.text();
+        let data;
+        try { data = JSON.parse(raw); } catch { data = { success: false, message: raw }; }
+
+        if (!res.ok || !data.success) {
+        console.error('HTTP', res.status, data);
+        alert((data && data.message) ? data.message : `Error ${res.status}`);
+        return;
+        }
+
+        location.reload();
+    } catch (e) {
+        console.error(e);
+        alert('Error de red o CORS');
+    }
+    });
+    
+    // Botón cancelar edición de imagen
+    const btnCancelarEditarImagen = document.getElementById('btnCancelarEditarImagen');
+    if (btnCancelarEditarImagen) {
+        btnCancelarEditarImagen.addEventListener('click', function() {
+            document.getElementById('imageEditForm').classList.add('d-none');
+            // Limpiar formulario
+            document.getElementById('editImagenId').value = '';
+            document.getElementById('editImagenTitulo').value = '';
+            document.getElementById('editImagenDescripcion').value = '';
+        });
+    }
+    
+    // Botón guardar edición de imagen
+    const btnGuardarImagen = document.getElementById('btnGuardarImagen');
+    if (btnGuardarImagen) {
+        btnGuardarImagen.addEventListener('click', async function() {
+            const idImagen = document.getElementById('editImagenId').value;
+            const titulo = document.getElementById('editImagenTitulo').value.trim();
+            const descripcion = document.getElementById('editImagenDescripcion').value.trim();
+            
+            if (!idImagen) {
+                alert('Error: No se encontró el ID de la imagen');
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('idImagen', idImagen);
+                formData.append('titulo', titulo);
+                formData.append('descripcion', descripcion);
+                
+                const res = await fetch(`${basePath}/api/actualizarImagen`, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    // Ocultar formulario
+                    document.getElementById('imageEditForm').classList.add('d-none');
+                    
+                    // Recargar imágenes para actualizar la vista
+                    const idAlbum = document.getElementById('editAlbumId').value;
+                    if (idAlbum) {
+                        loadAlbumImagesForEdit(idAlbum);
+                    }
+                    
+                    alert('Imagen actualizada correctamente');
+                } else {
+                    alert('Error: ' + (data.message || 'No se pudo actualizar la imagen'));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error de red al actualizar la imagen');
+            }
+        });
+    }
+
+
 });
 </script>
 

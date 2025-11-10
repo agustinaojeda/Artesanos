@@ -186,5 +186,115 @@ class ImagenModelo
         
         return $total;
     }
+
+    /**
+     * Elimina una imagen de la base de datos y del sistema de archivos
+     * @param int $idImagen El ID de la imagen a eliminar
+     * @param int $idUsuario El ID del usuario (para verificar propiedad)
+     * @return bool True si se eliminó correctamente, False en caso contrario
+     */
+    public function eliminarImagen(int $idImagen, int $idUsuario): bool
+    {
+        $conexion = abrirConexion();
+        
+        // Primero obtener la URL de la imagen y verificar que pertenece a un álbum del usuario
+        $sql = "SELECT i.urlImagen, a.idUsuarioAlbum 
+                FROM imagen i 
+                JOIN album a ON i.idAlbumImagen = a.idAlbum 
+                WHERE i.idImagen = ? AND a.idUsuarioAlbum = ?";
+        $stmt = $conexion->prepare($sql);
+        if (!$stmt) {
+            cerrarConexion($conexion);
+            return false;
+        }
+        
+        $stmt->bind_param("ii", $idImagen, $idUsuario);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $stmt->close();
+        
+        if (!$row) {
+            cerrarConexion($conexion);
+            return false; // No existe o no pertenece al usuario
+        }
+        
+        // Eliminar el archivo físico
+        $urlImagen = $row['urlImagen'];
+        if ($urlImagen) {
+            $publicPath = rtrim(BASE_PATH, '/\\') . '/public';
+            $rutaArchivo = $publicPath . '/uploads/imagenes/' . basename($urlImagen);
+            if (is_file($rutaArchivo)) {
+                @unlink($rutaArchivo);
+            }
+        }
+        
+        // Eliminar de la base de datos
+        $sqlDelete = "DELETE FROM imagen WHERE idImagen = ?";
+        $stmtDelete = $conexion->prepare($sqlDelete);
+        if (!$stmtDelete) {
+            cerrarConexion($conexion);
+            return false;
+        }
+        
+        $stmtDelete->bind_param("i", $idImagen);
+        $ok = $stmtDelete->execute();
+        $stmtDelete->close();
+        cerrarConexion($conexion);
+        
+        return (bool)$ok;
+    }
+
+    /**
+     * Actualiza el título y descripción de una imagen
+     * @param int $idImagen El ID de la imagen a actualizar
+     * @param int $idUsuario El ID del usuario (para verificar propiedad)
+     * @param string $titulo Nuevo título (puede estar vacío)
+     * @param string $descripcion Nueva descripción (puede estar vacía)
+     * @return bool True si se actualizó correctamente, False en caso contrario
+     */
+    public function actualizarImagen(int $idImagen, int $idUsuario, string $titulo, string $descripcion): bool
+    {
+        $conexion = abrirConexion();
+        
+        // Verificar que la imagen pertenece a un álbum del usuario
+        $sql = "SELECT i.idImagen 
+                FROM imagen i 
+                JOIN album a ON i.idAlbumImagen = a.idAlbum 
+                WHERE i.idImagen = ? AND a.idUsuarioAlbum = ?";
+        $stmt = $conexion->prepare($sql);
+        if (!$stmt) {
+            cerrarConexion($conexion);
+            return false;
+        }
+        
+        $stmt->bind_param("ii", $idImagen, $idUsuario);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $stmt->close();
+        
+        if (!$row) {
+            cerrarConexion($conexion);
+            return false; // No existe o no pertenece al usuario
+        }
+        
+        // Actualizar título y descripción
+        $sqlUpdate = "UPDATE imagen SET tituloImagen = ?, descripcionImagen = ? WHERE idImagen = ?";
+        $stmtUpdate = $conexion->prepare($sqlUpdate);
+        if (!$stmtUpdate) {
+            cerrarConexion($conexion);
+            return false;
+        }
+        
+        $titulo = trim($titulo);
+        $descripcion = trim($descripcion);
+        $stmtUpdate->bind_param("ssi", $titulo, $descripcion, $idImagen);
+        $ok = $stmtUpdate->execute();
+        $stmtUpdate->close();
+        cerrarConexion($conexion);
+        
+        return (bool)$ok;
+    }
 }
 

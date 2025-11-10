@@ -116,6 +116,27 @@ try {
         case '/api/checkFollowStatus':
             require VIEW_PATH . '/checkFollowStatus.php';
             break;
+        case '/api/editarAlbum':
+            require CTRL_PATH . '/editarAlbum.php';
+            break;
+        case '/api/imagenesDeAlbum':
+            require CTRL_PATH . '/imagenesDeAlbum.php';
+            break;
+        case '/api/eliminarImagen':
+            require CTRL_PATH . '/eliminarImagen.php';
+            break;
+        case '/api/agregarImagenesAlbum':
+            require CTRL_PATH . '/agregarImagenesAlbum.php';
+            break;
+        case '/api/obtenerDatosAlbum':
+            require CTRL_PATH . '/obtenerDatosAlbum.php';
+            break;
+        case '/api/actualizarImagen':
+            require CTRL_PATH . '/actualizarImagen.php';
+            break;
+        case '/api/eliminarPortadaAlbum':
+            require CTRL_PATH . '/eliminarPortadaAlbum.php';
+            break;
         default:
             http_response_code(404);
             echo '404 Not Found';
