@@ -136,7 +136,7 @@ $htmlIzquierda .= '
     </a>
 </div>';
 
-// Nota: Ahora los elementos de interacción están dentro de un div flex para mejor alineación.
+// Los elementos de interacción están dentro de un div flex para mejor alineación.
 // Comentarios
 $comentariosPorImagen = [];
 foreach ($imagenes as $img) {

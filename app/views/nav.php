@@ -84,8 +84,6 @@ if ($idUsuario > 0) {
               </div>
             </div>
 
-
-
             <?php
               //  Incluir helper y obtener avatar
               require_once MODEL_PATH . '/usuarioHelper.php';

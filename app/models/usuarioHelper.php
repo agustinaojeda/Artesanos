@@ -1,5 +1,4 @@
 <?php
-// app/models/usuarioHelper.php
 
 if (!function_exists('obtenerAvatar')) {
     /**

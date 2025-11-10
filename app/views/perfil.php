@@ -1,10 +1,5 @@
 <?php
-// app/views/perfil.php
-
-// Incluir conexión (ruta CORREGIDA y robusta)
 require_once CONFIG_PATH . '/conexion.php';
-
-// Incluir helper de usuario
 require_once MODEL_PATH . '/usuarioHelper.php';
 
 // Helper de escape
@@ -134,7 +129,7 @@ if (!$isOwner && isset($_SESSION['usuario']['id'])) {
 }
 
 // === Me gusta del usuario (álbums e imágenes) ===
-// Álbums que el usuario ha dado like
+// Álbums que el usuario dio like
 $likedAlbums = [];
 $sqlLikedAlbums = "
     SELECT a.idAlbum, a.tituloAlbum AS nombreAlbum, a.urlPortadaAlbum, a.fechaCreacionAlbum
@@ -152,7 +147,7 @@ if ($stmtLikedAlbums) {
     $stmtLikedAlbums->close();
 }
 
-// Imágenes que el usuario ha dado like
+// Imágenes que el usuario dio like
 $likedImages = [];
 $sqlLikedImages = "
     SELECT i.idImagen, i.tituloImagen, i.descripcionImagen, i.urlImagen, i.idAlbumImagen,
@@ -889,7 +884,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* =====================================================
-     🔵 3. POLLING: verificar estado del seguimiento cada 5s
+      POLLING: verificar estado del seguimiento cada 5s
   ====================================================== */
   setInterval(() => {
     const btn = document.querySelector('#follow-btn');
@@ -914,7 +909,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 5000);
 
   /* =====================================================
-     🔹 4. MODAL CARRUSEL
+                        MODAL CARRUSEL
   ====================================================== */
   const modal = document.getElementById('modalDetalleAlbum');
   if (modal) {
@@ -1004,14 +999,14 @@ document.addEventListener("DOMContentLoaded", () => {
         modalExito.style.display = "flex";
         modalExito.classList.add("fade-in");
 
-        // ⏳ Mantenerlo visible 5 segundos, luego desvanecer y redirigir
+        // Mantenerlo visible 5 segundos, luego desvanecer y redirigir
         setTimeout(() => {
             modalExito.classList.remove("fade-in");
             modalExito.classList.add("fade-out");
 
             setTimeout(() => {
             modalExito.style.display = "none";
-            // 🔁 Redirigir al home
+            // Redirigir al home
             window.location.href = "<?= $basePath ?>/perfil";
             }, 800); // 0.8s para la animación de salida
         }, 3000);
@@ -1025,7 +1020,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   });
 
-  // Función para mostrar toasts bonitos (requiere Bootstrap 5)
+  // Función para mostrar toasts bonitos 
   function mostrarToast(mensaje, tipo = "info") {
     const toast = document.createElement("div");
     toast.className = `toast align-items-center text-bg-${tipo} border-0 position-fixed bottom-0 end-0 m-3`;

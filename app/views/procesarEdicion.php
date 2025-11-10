@@ -1,5 +1,4 @@
 <?php
-// app/views/procesarEdicion.php
 
 if (!isset($_SESSION['usuario']['id']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ' . $basePath . '/login');
@@ -22,7 +21,7 @@ function clean_input_db($conexion, $value)
     return trim((string)$value); 
 }
 
-// 1) recoger datos
+// recoger datos
 $nombreUsuario = clean_input_db($conexion, $_POST['nombreUsuario'] ?? '');
 $apellidoUsuario = clean_input_db($conexion, $_POST['apellidoUsuario'] ?? '');
 $arrobaUsuario = clean_input_db($conexion, $_POST['arrobaUsuario'] ?? '');
@@ -62,7 +61,7 @@ if (!empty($errors)) {
 $conexion->begin_transaction();
 
 try {
-    // 2) Procesar subida de avatar (si subieron)
+    // Procesar subida de avatar (si subieron)
     $newAvatarId = 0;
     if (!empty($_FILES['new_avatar']) && $_FILES['new_avatar']['error'] !== UPLOAD_ERR_NO_FILE) {
         $file = $_FILES['new_avatar'];
@@ -97,17 +96,17 @@ try {
         $newAvatarId = (int)$ins->insert_id;
         $ins->close();
 
-        // 🟢 Actualizar la sesión inmediatamente si el usuario actualizó su propio avatar
+        // Actualizar la sesión inmediatamente si el usuario actualizó su propio avatar
         if (isset($_SESSION['usuario']) && $_SESSION['usuario']['id'] == $userId) {
             $_SESSION['usuario']['avatar'] = $newName;
         }
     }
 
-    // 2b) Si seleccionó historial, prevalece sobre nueva subida
+    // Si seleccionó historial, prevalece sobre nueva subida
     if ($selected_history_avatar_id > 0) {
         $newAvatarId = $selected_history_avatar_id;
 
-        // 🟢 También actualizamos la sesión con la imagen del historial
+        // ambién actualizamos la sesión con la imagen del historial
         $stmtFoto = $conexion->prepare("SELECT imagenPerfil FROM fotosdeperfil WHERE idFotoPerfil = ? AND idUsuario = ?");
         $stmtFoto->bind_param("ii", $selected_history_avatar_id, $userId);
         $stmtFoto->execute();
@@ -118,7 +117,7 @@ try {
         $stmtFoto->close();
     }
 
-    // 3) Preparar update dinámico con prepared statement
+    // Preparar update dinámico con prepared statement
     $fields = [
         'nombreUsuario' => $nombreUsuario,
         'apellidoUsuario' => $apellidoUsuario,
@@ -138,7 +137,7 @@ try {
         $fields['contrasenaUsuario'] = $hashed;
     }
 
-    // construir SQL (NO usamos columnas que no existen)
+    // construir SQL 
     $setParts = [];
     $types = '';
     $values = [];

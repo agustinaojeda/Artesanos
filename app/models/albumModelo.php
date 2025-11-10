@@ -3,7 +3,7 @@ require_once CONFIG_PATH . '/conexion.php';
 require_once CONFIG_PATH . '/cerrarConexion.php';
 include 'album.php';
 
-// Clase modelo: contiene la lógica de acceso a datos.
+// Clase modelo: contiene la lógica de acceso a los datos.
 // Se encarga de consultar e insertar álbumes en la base de datos.
 // No representa un álbum en sí, sino operaciones sobre ellos.
 
