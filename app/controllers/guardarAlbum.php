@@ -4,13 +4,11 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 header('Content-Type: application/json');
 
-
-session_start();
-require_once 'albumControlador.php';
-require_once '../models/albumModelo.php';
-require_once '../models/album.php';
-require_once '../models/imagenModelo.php';
-require_once '../models/imagen.php';
+require_once CTRL_PATH . '/albumControlador.php';
+require_once MODEL_PATH . '/albumModelo.php';
+require_once MODEL_PATH . '/album.php';
+require_once MODEL_PATH . '/imagenModelo.php';
+require_once MODEL_PATH . '/imagen.php';
 
 $controlador = new AlbumCont();
 
@@ -41,10 +39,33 @@ for ($i = 0; $i < $cantidad; $i++) {
 
 function guardarArchivo($archivo, $carpeta)
 {
-    $nombre = uniqid() . "_" . basename($archivo['name']);
-    $ruta = "../../public/uploads/$carpeta/" . $nombre;
-    move_uploaded_file($archivo['tmp_name'], $ruta);
+    // Ruta física a /public (no URL)
+    // En WAMP normalmente: C:\wamp64\www + /artesanos/Artesanos_Empanada2.0/public
+    $publicPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . (isset($GLOBALS['basePath']) ? str_replace('/', DIRECTORY_SEPARATOR, $GLOBALS['basePath']) : '');
+
+    // Directorio destino físico
+    $destDir = $publicPath . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . $carpeta;
+
+    // Asegurar que exista
+    if (!is_dir($destDir)) {
+        mkdir($destDir, 0775, true);
+    }
+
+    // Nombre final 
+    $nombreSeguro = preg_replace('/[^A-Za-z0-9_\-\.]+/', '_', basename($archivo['name']));
+    $nombre = uniqid() . '_' . $nombreSeguro;
+
+    $destino = $destDir . DIRECTORY_SEPARATOR . $nombre;
+
+    // Mover y chequear errores
+    if (!is_uploaded_file($archivo['tmp_name']) || !move_uploaded_file($archivo['tmp_name'], $destino)) {
+        
+        echo json_encode(["exito" => false, "mensaje" => "No se pudo guardar el archivo en $destino"]);
+        exit;
+    }
+
     return $nombre;
 }
+
 
 echo json_encode(["exito" => true, "mensaje" => "Álbum creado con éxito"]);

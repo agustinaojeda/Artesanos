@@ -1,80 +1,92 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-  session_start();
-}
+require_once CTRL_PATH . '/albumControlador.php'; 
 
-include '../controllers/albumControlador.php';
-include '../controllers/loginControlador.php';
-include '../controllers/registroControlador.php';
-
-// home.php (Línea 7 - CORREGIDO)
 $idUsuario = isset($_SESSION['usuario']['id']) ? (int)$_SESSION['usuario']['id'] : 0;
 
 $albumes = new AlbumCont();
 $albumes = $albumes->mostrarAlbumes($idUsuario); //recuperar los albumes de la bd
 
 $mostrarLogin = isset($_SESSION['mostrarLogin']) && $_SESSION['mostrarLogin'] === true;
+
+$pageTitle = 'Artesanos - Home';
+include VIEW_PATH . '/header.php'; 
+include VIEW_PATH . '/nav.php'; 
 ?>
-<!DOCTYPE html>
-<html lang="es">
+<style>
+  /* Botón de 3 puntitos naranja en modal */
+  #dropdownDenunciarAlbum .opciones-btn {
+    background: #f7931e;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    padding: 4px 6px;
+  }
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Artesanos</title>
-  <link rel="icon" href="../../public/assets/images/logo.png" type="image/x-icon">
+  #dropdownDenunciarAlbum .opciones-btn:hover {
+    background: #e6821a;
+    color: white;
+  }
 
-  <!--bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  /* Eliminar fondo azul al hacer clic en las opciones del menú */
+  #dropdownDenunciarAlbum .dropdown-item:active,
+  #dropdownDenunciarAlbum .dropdown-item:focus,
+  #dropdownDenunciarAlbum .dropdown-item:hover {
+    background-color: transparent !important;
+    color: #dc3545 !important;
+  }
+</style>
 
-  <link rel="stylesheet" href="../../public/assets/css/nav.css">
-  <link rel="stylesheet" href="../../public/assets/css/re.css">
-  <link rel="stylesheet" href="../../public/assets/css/footer.css">
-  <link rel="stylesheet" href="../../public/assets/css/home.css">
+<div class="container mt-4">
+  <div class="row row-cols-2 row-cols-md-4 g-5 justify-content-center">
 
-</head>
+<?php
 
-<body>
-  <?php include 'nav.php'; ?>
-  <div class="container mt-4">
-    <div class="row row-cols-2 row-cols-md-4 g-5">
+  if (!empty($albumes) && count($albumes) > 0) {
+    foreach ($albumes as $a) {
 
-      <?php
-      if (!empty($albumes) && count($albumes) > 0) {
-        foreach ($albumes as $a) {
-          $idImagenPortada = isset($a->idImagenPortada) ? (int)$a->idImagenPortada : (int)$a->idAlbum;
-          $urlPortada = htmlspecialchars($a->urlPortada);
-          $tituloAlbum = htmlspecialchars($a->tituloAlbum);
-          $apodoUsuario = htmlspecialchars($a->apodoUsuario);
-          $arrobaUsuario = htmlspecialchars(ltrim($a->arrobaUsuario, '@'));
+      $idImagenPortada = isset($a->idImagenPortada) ? (int)$a->idImagenPortada : (int)$a->idAlbum;
+      $urlPortada = htmlspecialchars($a->urlPortada);
+      $tituloAlbum = htmlspecialchars($a->tituloAlbum);
+      $apodoUsuario = htmlspecialchars($a->apodoUsuario);
+      $arrobaUsuario = htmlspecialchars(ltrim($a->arrobaUsuario, '@'));
 
-          echo '<div class="col album-item">
+      echo '<div class="col album-item">
               <a href="#" class="abrir-modal-album" data-id="' . (int)$a->idAlbum . '" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum" style="text-decoration: none; color: inherit;">
                 <div class="card-body">
-                  <img class="card-img-top" style="border-radius: 10px; height: 200px; object-fit: cover;" src="../../public/uploads/portadas/' . $urlPortada . '"/>
-                  <div class="d-flex justify-content-between align-items-center">
+                  <img class="card-img-top" style="border-radius: 10px; height: 200px; object-fit: cover;" src="' . $basePath . '/uploads/portadas/' . $urlPortada . '"/>
+                  <div class="d-flex justify-content-between align-items-center mt-2">
                     <h5 class="card-title mb-0">' . $tituloAlbum . '</h5>
                   </div>
                   <p class="card-text mb-0">' . $apodoUsuario . ' - @' . $arrobaUsuario . '</p>
                 </div>
               </a>
-              
+              <div class="d-flex gap-1 align-items-center mt-1">
+                <img src="' . $basePath . '/assets/images/like.png"
+                     alt="Me gusta"
+                     class="img-fluid btn-like-galeria"
+                     data-idalbum="' . (int)$a->idAlbum . '"
+                     style="max-height: 25px; cursor: pointer;">
+                <span id="likes-count-album-' . (int)$a->idAlbum . '" class="text-muted small align-self-center">0</span>
+
+                <img src="' . $basePath . '/assets/images/comentario.png"
+                     alt="Comentario"
+                     class="img-fluid"
+                     style="max-height: 23px; cursor: pointer;">
+              </div>
             </div>';
-        }
-      } else {
-        echo '<div class="container text-center mt-5">
-          <p>Aún no hay álbumes disponibles.<br>¡Sé el primero en publicar!</p>
-        </div>';
-      }
-      if ($idUsuario != 0 && !empty($albumes)) { //si el usuario esta logueado muestra el boton de cargar mas
-        echo '  <div class="text-center mt-4">
-          <button id="loadMore" class="btn btn-primary">Mostrar más</button>
-          </div>';
-      }
-      ?>
+    }
+  } else {
+    echo '<p class="text-center">Aún no hay álbumes disponibles.<br>¡Sé el primero en publicar!';
+  }
+  if ($idUsuario != 0) { //si el usuario esta logueado muestra el boton de cargar mas
+    echo '<div class="text-center mt-4" id="loadMore">
+      <button class="btn btn-primary">Mostrar más</button>
+      </div>';
+  }
+?>
     </div>
-  </div>
+</div>
+
   <!-- detalle de album-->
   <div class="modal fade" id="modalDetalleAlbum" tabindex="-1" aria-labelledby="modalDetalleAlbumLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
@@ -87,6 +99,24 @@ $mostrarLogin = isset($_SESSION['mostrarLogin']) && $_SESSION['mostrarLogin'] ==
           <div class="d-flex align-items-center gap-2">
             <?php if ($idUsuario != 0): ?>
               <button id="btnSeguir" class="btn btn-outline-primary btn-sm">Seguir</button>
+              <!-- Menú de 3 puntitos para denunciar (solo para álbumes ajenos) -->
+              <div class="dropdown" id="dropdownDenunciarAlbum" style="display: none;">
+                <button class="btn btn-light btn-sm opciones-btn" data-bs-toggle="dropdown" aria-expanded="false" type="button">
+                  <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li>
+                    <a class="dropdown-item text-danger" href="#" id="btnDenunciarAlbum">
+                      <i class="bi bi-flag me-2"></i>Denunciar álbum
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item text-danger" href="#" id="btnDenunciarImagen">
+                      <i class="bi bi-flag me-2"></i>Denunciar imagen actual
+                    </a>
+                  </li>
+                </ul>
+              </div>
             <?php endif; ?>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
@@ -109,23 +139,15 @@ $mostrarLogin = isset($_SESSION['mostrarLogin']) && $_SESSION['mostrarLogin'] ==
 
   <?php if ($idUsuario == 0): ?>
     <div id="registroBl">
-
+      
       <div id="bloqueRegistro" style="<?php echo $mostrarLogin ? 'display:none;' : 'display:block;'; ?>">
-        <?php
-        include 'registro.php';
-        ?>
+        <?php include 'registro.php'; ?>
       </div>
       <div id="bloqueLogin" style="<?php echo $mostrarLogin ? 'display:block;' : 'display:none;'; ?>">
-        <?php
-        include 'login.php';
-        ?>
+        <?php include 'login.php'; ?>
       </div>
     </div>
-    <?php if (isset($_SESSION['mostrarLogin'])) {
-      unset($_SESSION['mostrarLogin']);
-    } ?>
-
-
+    <?php unset($_SESSION['mostrarLogin']); ?>
 
   <?php else: ?>
     <!-- boton para crear album -->
@@ -149,7 +171,7 @@ $mostrarLogin = isset($_SESSION['mostrarLogin']) && $_SESSION['mostrarLogin'] ==
                   <h4 mb-3>Sube la portada</h4>
                   <div class="col-lg-6 col-12 mb-3">
 
-                    <label for="inputPortada" class="imagenParaSubir" id="portada" style="display: block;"><img src="../../public/assets/images/agregarImagen.png" alt="Subir portada"></label>
+                    <label for="inputPortada" class="imagenParaSubir" id="portada" style="display: block;"><img src="<?= $basePath ?>/assets/images/agregarImagen.png" alt="Subir portada"></label>
                     <input type="file" name="subirPortada" id="inputPortada" accept="image/*" required>
                     <div class="invalid-feedback">Sube una imagen de portada.</div>
 
@@ -185,7 +207,7 @@ $mostrarLogin = isset($_SESSION['mostrarLogin']) && $_SESSION['mostrarLogin'] ==
             <div class="row">
               <div class="col-lg-3"></div>
               <div class="col-lg-4 col-12">
-                <label for="inputImagenes" class="imagenParaSubir"><img src="../../public/assets/images/agregarImagen.png" alt="Subir imagen"></label>
+                <label for="inputImagenes" class="imagenParaSubir"><img src="<?= $basePath ?>/assets/images/agregarImagen.png" alt="Subir imagen"></label>
                 <input type="file" name="inputImagenes" id="inputImagenes" accept="image/*">
 
                 <div class="invalid-feedback">Sube una imagen. El máximo son 20.</div>
@@ -220,12 +242,7 @@ $mostrarLogin = isset($_SESSION['mostrarLogin']) && $_SESSION['mostrarLogin'] ==
     </div>
     </div>
   <?php endif; ?>
-  <script>
-    const idUsuarioLogueado = <?php echo json_encode($idUsuario); ?>;
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-  <script src="../../public/assets/js/home.js"></script>
-</body>
 
-</html>
+
+<script src="<?= $basePath ?>/assets/js/home.js"></script>
+<?php include VIEW_PATH . '/footer.php'; ?>

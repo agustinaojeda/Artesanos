@@ -1,8 +1,7 @@
 <?php
-include '../models/imagenModelo.php';
-include '../models/albumModelo.php';
-session_start();
 
+include MODEL_PATH . '/imagenModelo.php';
+include MODEL_PATH . '/albumModelo.php';
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['usuario']['id'])) {
@@ -31,6 +30,9 @@ try {
     if ($idImagen) {
         $modeloImagen = new ImagenModelo();
         $resultado = $modeloImagen->toggleLike($idImagen, $idUsuario);
+    } else {
+        $modeloAlbum = new AlbumModelo();
+        $resultado = $modeloAlbum->toggleLikeAlbum($idAlbum, $idUsuario);
     }
 
     echo json_encode($resultado);

@@ -1,9 +1,10 @@
 <?php
-include '../models/imagenModelo.php';
-include '../models/albumModelo.php';
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
-if (session_status() === PHP_SESSION_NONE) session_start();
+
+include MODEL_PATH . '/imagenModelo.php';
+include MODEL_PATH . '/albumModelo.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
+
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
@@ -12,8 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-$idImagen = filter_input(INPUT_GET, 'idImagen', FILTER_VALIDATE_INT);
-$idAlbum  = filter_input(INPUT_GET, 'idAlbum', FILTER_VALIDATE_INT);
+$idImagen = filter_input(INPUT_GET, 'idImagen', FILTER_VALIDATE_INT) ?? null;
+$idAlbum  = filter_input(INPUT_GET, 'idAlbum', FILTER_VALIDATE_INT) ?? null;
 $idUsuario = isset($_SESSION['usuario']['id']) ? (int)$_SESSION['usuario']['id'] : 0;
 
 if (!$idImagen && !$idAlbum) {

@@ -30,12 +30,13 @@
 }
 .imagenCuadrada {
   aspect-ratio: 1 / 1;
-  object-fit: cover;
+  object-fit: contain;
   width: 100%;
   max-width: 450px;
   border-radius: 8px;
   margin-top: 10px; 
   display: none;
+  background-color: #f8f9fa;
 }
 .imagenParaSubir:hover {
     transform: scale(1.01);
@@ -79,8 +80,9 @@
 .imagenPreview {
   width: 100%;
   max-height: 600px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 8px;
+  background-color: #f8f9fa;
 }
 
 .was-validated .form-control:valid,
@@ -117,20 +119,4 @@
 }
 #loadMore {
   display: none !important;
-}
-  .logPas {
-  position: relative;
-}
-
-.logPas .toggle-password {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  z-index: 5;
-}
-
-.logPas input.form-control {
-  padding-right: 2.75rem; 
 }

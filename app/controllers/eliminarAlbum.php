@@ -1,5 +1,5 @@
 <?php
-session_start();
+
 header('Content-Type: application/json');
 
 if (!isset($_POST['idAlbum'])) {
@@ -15,12 +15,12 @@ if ($idUsuario === 0) {
     exit;
 }
 
-require_once dirname(__DIR__) . '/models/albumModelo.php';
+require_once MODEL_PATH . '/albumModelo.php';
 
 
 $albumModelo = new AlbumModelo();
 
-// ✅ Se verifica que el álbum pertenezca al usuario
+// Se verifica que el álbum pertenezca al usuario
 if (!$albumModelo->esPropietarioDelAlbum($idAlbum, $idUsuario)) {
     echo json_encode(["success" => false, "message" => "No tienes permiso para eliminar este álbum"]);
     exit;

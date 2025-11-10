@@ -1,7 +1,6 @@
 <?php
-session_start();
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
 $conexion = abrirConexion();
 
 $idSeguidor = $_SESSION['usuario']['id'] ?? 0;
@@ -11,6 +10,7 @@ if (!$idSeguidor || !$idSeguido) {
     echo 'error:datos';
     exit;
 }
+
 
 $check = $conexion->prepare("SELECT estadoSeguimiento FROM seguimiento WHERE idSeguidor = ? AND idSeguido = ?");
 $check->bind_param("ii", $idSeguidor, $idSeguido);
@@ -43,6 +43,3 @@ $stmt2->execute();
 cerrarConexion($conexion);
 echo 'pendiente';
 ?>
-
-
-

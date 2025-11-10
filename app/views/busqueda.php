@@ -1,7 +1,31 @@
 <?php
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
+?>
+<style>
+  /* Botón de 3 puntitos naranja en modal */
+  #dropdownDenunciarAlbum .opciones-btn {
+    background: #f7931e;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    padding: 4px 6px;
+  }
 
+  #dropdownDenunciarAlbum .opciones-btn:hover {
+    background: #e6821a;
+    color: white;
+  }
+
+  /* Eliminar fondo azul al hacer clic en las opciones del menú */
+  #dropdownDenunciarAlbum .dropdown-item:active,
+  #dropdownDenunciarAlbum .dropdown-item:focus,
+  #dropdownDenunciarAlbum .dropdown-item:hover {
+    background-color: transparent !important;
+    color: #dc3545 !important;
+  }
+</style>
+<?php
 $conexion = abrirConexion();
 
 $busqueda = trim($_GET['query'] ?? '');
@@ -96,25 +120,13 @@ elseif ($busqueda !== '') {
 else {
     $resultado = false;
 }
+
+$pageTitle = 'Artesanos - Resultados de búsqueda';
+include VIEW_PATH . '/header.php'; 
+include VIEW_PATH . '/nav.php'; 
 ?>
 
-
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Resultados de búsqueda</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-
-    <link rel="stylesheet" href="../../public/assets/css/nav.css">
-    <link rel="stylesheet" href="../../public/assets/css/buscar.css">
-    <link rel="stylesheet" href="../../public/assets/css/home.css">
-</head>
-<body>
-
-<?php include 'nav.php'; ?> 
-
+<link rel="stylesheet" href="<?= $basePath ?>/assets/css/buscar.css">
 <main class="contenedor">
 <?php if ($resultado && $resultado->num_rows > 0): ?>
     <div class="grid">
@@ -127,8 +139,8 @@ else {
                 $totalSeg = (int)$row['totalSeg'];
                 $totalAlb = (int)$row['totalAlb'];
                 $foto = !empty($row['fotoPerfil'])
-                    ? '../../public/uploads/avatars/' . htmlspecialchars($row['fotoPerfil'])
-                    : '../../public/assets/images/logo.png';
+                    ? "$basePath/uploads/avatars/" . htmlspecialchars($row['fotoPerfil'])
+                    : "$basePath/assets/images/logo.png";
                 
                 $colores = ['#ffeedb', '#ffe0cc', '#ffd1a3', '#ffd6cc', '#e0ffe0', '#d9e8ff', '#f0d9ff', '#fff6cc'];
                 $colorRandom = $colores[array_rand($colores)];
@@ -143,7 +155,7 @@ else {
                         <span><?= $totalSeg ?> Seguidores</span> | 
                         <span><?= $totalAlb ?> Álbumes</span>
                     </div>
-                    <a class="verPerfil" href="perfil.php?id=<?= urlencode($row['idUsuario']) ?>">Ver perfil</a>
+                    <a class="verPerfil" href="perfil?id=<?= urlencode($row['idUsuario']) ?>">Ver perfil</a>
                 </div>
             <?php endwhile; ?>
         <?php else: ?>
@@ -154,16 +166,20 @@ else {
                 $apodo = htmlspecialchars($row['apodoUsuario']);
                 $arroba = htmlspecialchars($row['arrobaUsuario']);
                 $foto = !empty($row['fotoPerfil'])
-                    ? '../../public/uploads/avatars/' . htmlspecialchars($row['fotoPerfil'])
-                    : '../../public/assets/images/logo.png';
+                    ? $basePath . '/uploads/avatars/' . $row['fotoPerfil']
+                    : $basePath . '/assets/images/logo.png';
                 $portada = !empty($row['urlPortadaAlbum'])
-                    ? '../../public/uploads/portadas/' . htmlspecialchars($row['urlPortadaAlbum'])
+                    ? $basePath . '/uploads/portadas/' . $row['urlPortadaAlbum']
                     : 'https://placehold.co/300x100?text=Sin+Portada';
                 
                 ?>
                 <div class="tarjeta">
-                    <img class="portadas" style="border-radius: 10px; width: 100%; height: 200px; object-fit: cover; object-position: center;" src="<?= htmlspecialchars($portada) ?>" alt="Portada del álbum">
-                    <img class="avatar" src="<?= $foto ?>" alt="Avatar usuario">
+                    <img class="portadas" style="border-radius: 10px; width: 100%; height: 200px; object-fit: cover; object-position: center;" 
+                        src="<?= htmlspecialchars($portada, ENT_QUOTES) ?>"
+                        alt="Portada del álbum">
+                    <img class="avatar" 
+                        src="<?= htmlspecialchars($foto, ENT_QUOTES) ?>"
+                        alt="Avatar usuario">
                     <h3><?= $titulo ?></h3>
                     <p>de <?= $apodo ?> (@<?= $arroba ?>)</p>
                     <a href="#" 
@@ -195,6 +211,24 @@ else {
         </div>
         <div class="d-flex align-items-center gap-2">
           <button id="btnSeguir" class="btn btn-outline-primary btn-sm">Seguir</button>
+          <!-- Menú de 3 puntitos para denunciar (solo para álbumes ajenos) -->
+          <div class="dropdown" id="dropdownDenunciarAlbum" style="display: none;">
+            <button class="btn btn-light btn-sm opciones-btn" data-bs-toggle="dropdown" aria-expanded="false" type="button">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <a class="dropdown-item text-danger" href="#" id="btnDenunciarAlbum">
+                  <i class="bi bi-flag me-2"></i>Denunciar álbum
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item text-danger" href="#" id="btnDenunciarImagen">
+                  <i class="bi bi-flag me-2"></i>Denunciar imagen actual
+                </a>
+              </li>
+            </ul>
+          </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
       </div>
@@ -212,10 +246,6 @@ else {
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../../public/assets/js/home.js"></script>
 
-</body>
-</html>
-
-
+<script src="<?= $basePath ?>/assets/js/home.js"></script>
+<?php include VIEW_PATH . '/footer.php'; ?>

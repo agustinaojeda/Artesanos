@@ -1,0 +1,14 @@
+# Mantenerse en la MISMA URL: manejar errores localmente
+ErrorDocument 404 /index.php
+ErrorDocument 403 /index.php
+ErrorDocument 500 /index.php
+
+RewriteEngine On
+RewriteCond %{QUERY_STRING} ^(.*)i=[^&]+&?(.*)$ [NC]
+RewriteRule ^(.*)$ /$1?%1%2 [R=301,L]
+
+# Mapear estáticos legacy a /public/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^assets/(.*)$  public/assets/$1   [L,QSA]
+RewriteRule ^uploads/(.*)$ public/uploads/$1  [L,QSA]

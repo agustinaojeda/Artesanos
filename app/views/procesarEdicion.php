@@ -1,14 +1,12 @@
 <?php
-// app/views/procesarEdicion.php
-if (session_status() === PHP_SESSION_NONE) session_start();
 
 if (!isset($_SESSION['usuario']['id']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: login.php');
+    header('Location: ' . $basePath . '/login');
     exit;
 }
 
-// conexión (subir 2 niveles hasta la raíz del proyecto)
-require_once dirname(__DIR__, 2) . '/config/conexion.php';
+require_once CONFIG_PATH . '/conexion.php';
+    
 $conexion = abrirConexion();
 if ($conexion === false || $conexion->connect_error) {
     die("Error de conexión a la base de datos.");
@@ -20,15 +18,16 @@ $errors = [];
 // Helper
 function clean_input_db($conexion, $value)
 {
-    return mysqli_real_escape_string($conexion, trim((string)$value));
+    return trim((string)$value); 
 }
 
-// 1) recoger datos
+// recoger datos
 $nombreUsuario = clean_input_db($conexion, $_POST['nombreUsuario'] ?? '');
 $apellidoUsuario = clean_input_db($conexion, $_POST['apellidoUsuario'] ?? '');
 $arrobaUsuario = clean_input_db($conexion, $_POST['arrobaUsuario'] ?? '');
 $apodoUsuario = clean_input_db($conexion, $_POST['apodoUsuario'] ?? '');
 $descripcionUsuario = clean_input_db($conexion, $_POST['descripcionUsuario'] ?? '');
+$descripcionUsuario = preg_replace("/\r\n?/", "\n", $descripcionUsuario);
 $correoUsuario = clean_input_db($conexion, $_POST['correoUsuario'] ?? '');
 $privacidadUsuario = clean_input_db($conexion, $_POST['privacidadUsuario'] ?? 'publico');
 
@@ -54,7 +53,7 @@ if ($new_password !== '' && strlen($new_password) < 6) {
 if (!empty($errors)) {
     $_SESSION['errors'] = $errors;
     $_SESSION['form_data'] = $_POST;
-    header('Location: editarPerfil.php');
+    header('Location: ' . $basePath . '/editarPerfil');
     exit;
 }
 
@@ -62,7 +61,7 @@ if (!empty($errors)) {
 $conexion->begin_transaction();
 
 try {
-    // 2) Procesar subida de avatar (si subieron)
+    // Procesar subida de avatar (si subieron)
     $newAvatarId = 0;
     if (!empty($_FILES['new_avatar']) && $_FILES['new_avatar']['error'] !== UPLOAD_ERR_NO_FILE) {
         $file = $_FILES['new_avatar'];
@@ -97,17 +96,17 @@ try {
         $newAvatarId = (int)$ins->insert_id;
         $ins->close();
 
-        // 🟢 Actualizar la sesión inmediatamente si el usuario actualizó su propio avatar
+        // Actualizar la sesión inmediatamente si el usuario actualizó su propio avatar
         if (isset($_SESSION['usuario']) && $_SESSION['usuario']['id'] == $userId) {
             $_SESSION['usuario']['avatar'] = $newName;
         }
     }
 
-    // 2b) Si seleccionó historial, prevalece sobre nueva subida
+    // Si seleccionó historial, prevalece sobre nueva subida
     if ($selected_history_avatar_id > 0) {
         $newAvatarId = $selected_history_avatar_id;
 
-        // 🟢 También actualizamos la sesión con la imagen del historial
+        // ambién actualizamos la sesión con la imagen del historial
         $stmtFoto = $conexion->prepare("SELECT imagenPerfil FROM fotosdeperfil WHERE idFotoPerfil = ? AND idUsuario = ?");
         $stmtFoto->bind_param("ii", $selected_history_avatar_id, $userId);
         $stmtFoto->execute();
@@ -118,7 +117,7 @@ try {
         $stmtFoto->close();
     }
 
-    // 3) Preparar update dinámico con prepared statement
+    // Preparar update dinámico con prepared statement
     $fields = [
         'nombreUsuario' => $nombreUsuario,
         'apellidoUsuario' => $apellidoUsuario,
@@ -138,7 +137,7 @@ try {
         $fields['contrasenaUsuario'] = $hashed;
     }
 
-    // construir SQL (NO usamos columnas que no existen)
+    // construir SQL 
     $setParts = [];
     $types = '';
     $values = [];
@@ -182,12 +181,12 @@ try {
 
 
     $_SESSION['message'] = "Perfil actualizado correctamente.";
-    header("Location: perfil.php?id={$userId}");
+    header('Location: ' . $basePath . '/perfil?id=' . $userId);
     exit;
 } catch (Exception $ex) {
     $conexion->rollback();
     $_SESSION['errors'] = [$ex->getMessage()];
     $_SESSION['form_data'] = $_POST;
-    header('Location: editarPerfil.php');
+    header('Location: ' . $basePath . '/editarPerfil');
     exit;
 }

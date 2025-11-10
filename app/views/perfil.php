@@ -1,15 +1,6 @@
 <?php
-// app/views/perfil.php
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Incluir conexión (ruta CORREGIDA y robusta)
-require_once dirname(__DIR__, 2) . '/config/conexion.php';
-
-// Incluir helper de usuario
-require_once dirname(__DIR__) . '/models/usuarioHelper.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once MODEL_PATH . '/usuarioHelper.php';
 
 // Helper de escape
 function e($s)
@@ -138,8 +129,8 @@ if (!$isOwner && isset($_SESSION['usuario']['id'])) {
 }
 
 // === Me gusta del usuario (álbums e imágenes) ===
-// Álbums que el usuario ha dado like
-/* $likedAlbums = [];
+// Álbums que el usuario dio like
+$likedAlbums = [];
 $sqlLikedAlbums = "
     SELECT a.idAlbum, a.tituloAlbum AS nombreAlbum, a.urlPortadaAlbum, a.fechaCreacionAlbum
     FROM megusta_album ma
@@ -156,7 +147,7 @@ if ($stmtLikedAlbums) {
     $stmtLikedAlbums->close();
 }
 
-// Imágenes que el usuario ha dado like
+// Imágenes que el usuario dio like
 $likedImages = [];
 $sqlLikedImages = "
     SELECT i.idImagen, i.tituloImagen, i.descripcionImagen, i.urlImagen, i.idAlbumImagen,
@@ -174,33 +165,121 @@ if ($stmtLikedImages) {
     $resLikedImages = $stmtLikedImages->get_result();
     $likedImages = $resLikedImages ? $resLikedImages->fetch_all(MYSQLI_ASSOC) : [];
     $stmtLikedImages->close();
-} */
-require_once dirname(__DIR__) . '/controllers/albumControlador.php';
-$albumControlador = new AlbumCont();
-$albumesVirtuales = $albumControlador->obtenerAlbumesVirtualesDeLikes($perfilId);
+}
 
+// === Contenido que te gusta de usuarios que sigues (solo si es el perfil propio) ===
+$likedContentByUser = [];
+if ($isOwner) {
+    // Obtener usuarios que el perfil actual sigue con estado 'activo'
+    $sqlLikedByUser = "
+        SELECT DISTINCT 
+            u.idUsuario,
+            u.apodoUsuario,
+            u.arrobaUsuario,
+            u.IdFotoPerfilUsuario
+        FROM usuario u
+        INNER JOIN seguimiento s ON s.idSeguido = u.idUsuario
+        WHERE s.idSeguidor = ? 
+        AND s.estadoSeguimiento = 'activo'
+        AND (
+            EXISTS (
+                SELECT 1 FROM megusta_album ma 
+                INNER JOIN album a ON a.idAlbum = ma.idAlbumLike 
+                WHERE ma.idUsuarioLike = ? AND a.idUsuarioAlbum = u.idUsuario
+            )
+            OR EXISTS (
+                SELECT 1 FROM megusta m 
+                INNER JOIN imagen i ON i.idImagen = m.idImagenLike 
+                INNER JOIN album a ON a.idAlbum = i.idAlbumImagen 
+                WHERE m.idUsuarioLike = ? AND a.idUsuarioAlbum = u.idUsuario
+            )
+        )
+        ORDER BY u.apodoUsuario
+    ";
+    
+    $stmtLikedByUser = $conexion->prepare($sqlLikedByUser);
+    if ($stmtLikedByUser) {
+        $stmtLikedByUser->bind_param("iii", $perfilId, $perfilId, $perfilId);
+        $stmtLikedByUser->execute();
+        $resLikedByUser = $stmtLikedByUser->get_result();
+        
+        while ($row = $resLikedByUser->fetch_assoc()) {
+            $userId = (int)$row['idUsuario'];
+            $likedContentByUser[$userId] = [
+                'user' => [
+                    'idUsuario' => $userId,
+                    'apodoUsuario' => $row['apodoUsuario'],
+                    'arrobaUsuario' => $row['arrobaUsuario'],
+                    'fotoPerfil' => $row['IdFotoPerfilUsuario'] ?? null
+                ],
+                'albums' => [],
+                'images' => []
+            ];
+            
+            // Obtener portadas de álbumes a los que dio like
+            $sqlAlbumLikes = "
+                SELECT DISTINCT
+                    a.idAlbum,
+                    a.tituloAlbum,
+                    a.urlPortadaAlbum,
+                    a.fechaCreacionAlbum
+                FROM megusta_album ma
+                INNER JOIN album a ON a.idAlbum = ma.idAlbumLike
+                WHERE ma.idUsuarioLike = ? 
+                AND a.idUsuarioAlbum = ?
+                ORDER BY ma.fechaLike DESC
+            ";
+            $stmtAlbumLikes = $conexion->prepare($sqlAlbumLikes);
+            if ($stmtAlbumLikes) {
+                $stmtAlbumLikes->bind_param("ii", $perfilId, $userId);
+                $stmtAlbumLikes->execute();
+                $resAlbumLikes = $stmtAlbumLikes->get_result();
+                while ($album = $resAlbumLikes->fetch_assoc()) {
+                    $likedContentByUser[$userId]['albums'][] = $album;
+                }
+                $stmtAlbumLikes->close();
+            }
+            
+            // Obtener imágenes individuales a las que dio like
+            $sqlImageLikes = "
+                SELECT DISTINCT
+                    i.idImagen,
+                    i.tituloImagen,
+                    i.descripcionImagen,
+                    i.urlImagen,
+                    i.idAlbumImagen,
+                    a.tituloAlbum AS nombreAlbum,
+                    a.urlPortadaAlbum
+                FROM megusta m
+                INNER JOIN imagen i ON i.idImagen = m.idImagenLike
+                INNER JOIN album a ON a.idAlbum = i.idAlbumImagen
+                WHERE m.idUsuarioLike = ? 
+                AND a.idUsuarioAlbum = ?
+                ORDER BY m.fechaLike DESC
+            ";
+            $stmtImageLikes = $conexion->prepare($sqlImageLikes);
+            if ($stmtImageLikes) {
+                $stmtImageLikes->bind_param("ii", $perfilId, $userId);
+                $stmtImageLikes->execute();
+                $resImageLikes = $stmtImageLikes->get_result();
+                while ($image = $resImageLikes->fetch_assoc()) {
+                    $likedContentByUser[$userId]['images'][] = $image;
+                }
+                $stmtImageLikes->close();
+            }
+        }
+        $stmtLikedByUser->close();
+    }
+}
 
 $conexion->close();
+
+$pageTitle = 'Artesanos - Perfil';
+include VIEW_PATH . '/header.php'; 
+include VIEW_PATH . '/nav.php';
 ?>
-
-<!DOCTYPE html>
-<html lang="es">
-
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Artesanos</title>
-    <link rel="icon" href="../../public/assets/images/logo.png" type="image/x-icon">
-
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-
-    <link rel="stylesheet" href="../../public/assets/css/nav.css">
-    <link rel="stylesheet" href="../../public/assets/css/home.css">
-    <link rel="stylesheet" href="../../public/assets/css/perfil.css">
-    <link rel="stylesheet" href="../../public/assets/css/modalEliminarAlbum.css">
-
+    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/perfil.css">
+    <link rel="stylesheet" href="<?= $basePath ?>/assets/css/modalEliminarAlbum.css">
     <style>
         .modal {
             z-index: 20000 !important;
@@ -210,7 +289,6 @@ $conexion->close();
             z-index: 19999 !important;
         }
     </style>
-
 
     <style>
         /* Layout de 5 cajas */
@@ -399,7 +477,6 @@ $conexion->close();
             font-weight: 600;
             color: #333;
         }
-
         /* Tres puntitos */
         .opciones-album {
             position: absolute;
@@ -413,11 +490,29 @@ $conexion->close();
             border-radius: 50%;
             padding: 4px 6px;
         }
-    </style>
-</head>
 
-<body>
-    <?php include 'nav.php'; ?>
+        /* Botón de 3 puntitos naranja en modal */
+        #dropdownDenunciarAlbum .opciones-btn {
+            background: #f7931e;
+            color: white;
+            border: none;
+        }
+
+        #dropdownDenunciarAlbum .opciones-btn:hover {
+            background: #e6821a;
+            color: white;
+        }
+
+        /* Eliminar fondo azul al hacer clic en las opciones del menú */
+        #dropdownDenunciarAlbum .dropdown-item:active,
+        #dropdownDenunciarAlbum .dropdown-item:focus,
+        #dropdownDenunciarAlbum .dropdown-item:hover {
+            background-color: transparent !important;
+            color: #dc3545 !important;
+        }
+
+    </style>
+
     <div class="modal fade" id="modalDetalleAlbum" tabindex="-1" aria-labelledby="modalDetalleAlbumLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content p-4">
@@ -428,6 +523,24 @@ $conexion->close();
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <button id="btnSeguir" class="btn btn-outline-primary btn-sm">Seguir</button>
+                        <!-- Menú de 3 puntitos para denunciar (solo para álbumes ajenos) -->
+                        <div class="dropdown" id="dropdownDenunciarAlbum" style="display: none;">
+                            <button class="btn btn-light btn-sm opciones-btn" data-bs-toggle="dropdown" aria-expanded="false" type="button">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item text-danger" href="#" id="btnDenunciarAlbum">
+                                        <i class="bi bi-flag me-2"></i>Denunciar álbum
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="#" id="btnDenunciarImagen">
+                                        <i class="bi bi-flag me-2"></i>Denunciar imagen actual
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
                 </div>
@@ -448,7 +561,87 @@ $conexion->close();
             </div>
         </div>
     </div>
+<!-- Agregar esto después de tus otros modales -->
+<div class="modal fade" id="modalEditarAlbum" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg"> <!-- Changed to modal-lg for more space -->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar álbum</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Album Info Section -->
+                <form id="formEditarAlbum">
+                    <input type="hidden" name="idAlbum" id="editAlbumId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Título del álbum</label>
+                        <input type="text" class="form-control" name="titulo" id="editAlbumTitulo" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Portada</label>
+                        <input type="file" class="form-control" name="portada" accept="image/*">
+                        <div class="position-relative d-inline-block mt-2" id="portadaPreviewContainer" style="display: none;">
+                            <img id="editAlbumPortadaPreview" style="max-width: 200px; display: block;">
+                            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 eliminar-portada-btn" 
+                                    style="z-index: 10; opacity: 0.9;"
+                                    title="Eliminar portada">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Privacidad</label>
+                        <select name="esPublico" class="form-select">
+                            <option value="1">Público</option>
+                            <option value="0">Solo seguidores</option>
+                        </select>
+                    </div>
+                </form>
 
+                <!-- Images Section -->
+                <hr>
+                <h6 class="mt-4">Imágenes del álbum</h6>
+                <div id="albumImagesList" class="row g-3 mt-2">
+                    <!-- Images will be loaded here dynamically -->
+                </div>
+                
+                <!-- Input oculto para agregar nuevas imágenes -->
+                <input type="file" id="inputNuevasImagenes" multiple accept="image/*" style="display: none;">
+
+                <!-- Image Edit Form (initially hidden) -->
+                <div id="imageEditForm" class="mt-4 d-none">
+                    <hr>
+                    <h6>Editar imagen</h6>
+                    <form id="formEditarImagen">
+                        <input type="hidden" id="editImagenId" name="idImagen">
+                        <div class="mb-3">
+                            <label class="form-label">Título de la imagen</label>
+                            <input type="text" class="form-control" id="editImagenTitulo" name="tituloImagen" placeholder="Título de la imagen">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" id="editImagenDescripcion" name="descripcionImagen" rows="3" placeholder="Descripción de la imagen"></textarea>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-secondary" id="btnCancelarEditarImagen">Cancelar</button>
+                            <button type="button" class="btn btn-sm btn-orange-full" id="btnGuardarImagen">Guardar cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success-full" id="btnAgregarImagenes">
+                    <i class="bi bi-plus-circle"></i> Agregar imágenes
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-orange-full" id="btnGuardarEdicion">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
     <div class="container profile-top">
         <div class="profile-grid align-items-center">
             <div class="box box-avatar">
@@ -463,9 +656,9 @@ $conexion->close();
             <div class="box">
                 <p class="descripcion mb-0" style="white-space: pre-line;">
                     <?php
-                    $desc = $userData['descripcionUsuario'] ?? '';
-                    $desc = $desc !== '' ? $desc : 'Sin descripción.';
-                    echo htmlspecialchars(str_replace(["\r\n", "\n", "\r"], "\n", $desc));
+                        $desc = $userData['descripcionUsuario'] ?? '';
+                        $desc = $desc !== '' ? $desc : 'Sin descripción.';
+                        echo htmlspecialchars(str_replace(["\r\n", "\n", "\r"], "\n", $desc));
                     ?>
                 </p>
 
@@ -492,19 +685,19 @@ $conexion->close();
 
                     <div class="action-buttons">
                         <?php if ($isOwner): ?>
-                            <a href="editarPerfil.php" class="btn btn-orange-full d-flex align-items-center justify-content-center">
+                            <a href="editarPerfil" class="btn btn-orange-full d-flex align-items-center justify-content-center">
                                 <i class="bi bi-pencil me-2"></i> Editar perfil
                             </a>
 
-                            <form method="POST" action="cerrarSesion.php" style="margin:0;">
+                            <form method="POST" action="cerrarSesion" style="margin:0;">
                                 <button type="submit" class="btn btn-orange-full d-flex align-items-center justify-content-center">
                                     <i class="bi bi-door-open me-2"></i> Cerrar sesión
                                 </button>
                             </form>
                         <?php elseif (isset($_SESSION['usuario']['id'])): ?>
                             <?php
-
-                            if ($followStatus === 'pendiente') {
+                                                       
+                                if ($followStatus === 'pendiente') {
                                 $followBtnClass = 'btn-secondary';
                                 $followBtnText = '<i class="bi bi-hourglass-split me-2"></i> Pendiente';
                             } elseif ($followStatus === 'activo') {
@@ -517,12 +710,12 @@ $conexion->close();
 
                             ?>
                             <button id="follow-btn" class="btn <?= $followBtnClass ?> d-flex align-items-center justify-content-center" data-id-seguido="<?= $perfilId ?>">
-                                <?= $followBtnText ?>
+                            <?= $followBtnText ?>
                             </button>
 
 
                         <?php else: ?>
-                            <a href="login.php" class="btn btn-orange-full d-flex align-items-center justify-content-center">
+                            <a href="login" class="btn btn-orange-full d-flex align-items-center justify-content-center">
                                 <i class="bi bi-person-plus me-2"></i> Seguir
                             </a>
                         <?php endif; ?>
@@ -540,62 +733,72 @@ $conexion->close();
 
         <div class="tab-content">
             <div class="tab-pane fade show active" id="albums-tab">
-                <h4 class="mb-4">Mis álbumes (<?= count($albums) ?>)</h4>
+                <h3 class="mb-4">Álbumes (<?= count($albums) ?>)</h3>
                 <?php if (empty($albums)): ?>
                     <p class="text-muted text-center py-5">Sin álbumes para este usuario.</p>
                 <?php else: ?>
                     <div class="album-grid">
                         <?php foreach ($albums as $album): ?>
                             <?php
-                            $coverUrl = $album['urlPortadaAlbum']
-                                ? '../../public/uploads/portadas/' . e($album['urlPortadaAlbum'])
-                                : '../../public/assets/images/imagen.png';
+                            // Si urlPortadaAlbum es 'imagen.png' o está vacío, usar la imagen por defecto
+                            $portada = $album['urlPortadaAlbum'] ?? '';
+                            if (empty($portada) || $portada === 'imagen.png') {
+                                $coverUrl = "$basePath/assets/images/imagen.png";
+                            } else {
+                                $coverUrl = "$basePath/uploads/portadas/" . e($portada);
+                            }
 
                             // ✅ Agregá esta línea
                             $albumDate = new DateTime($album['fechaCreacionAlbum']);
                             ?>
-                            <div class="album-card album-card- position-relative" data-id="<?= (int)$album['idAlbum'] ?>">
+                            <div class="album-card position-relative" data-id="<?= (int)$album['idAlbum'] ?>">
 
-                                <!-- ✅ Menú de tres puntitos (NO abre el modal) -->
-                                <div class="dropdown opciones-album position-absolute top-0 end-0 m-2">
-                                    <button class="btn btn-light btn-sm opciones-btn" data-bs-toggle="dropdown"
+                            <!-- ✅ Menú de tres puntitos (NO abre el modal) -->
+                            <div class="dropdown opciones-album position-absolute top-0 end-0 m-2">
+                                <button class="btn btn-light btn-sm opciones-btn" data-bs-toggle="dropdown"
                                         onclick="event.stopPropagation();">
-                                        <i class="bi bi-three-dots-vertical"></i>
-                                    </button>
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
 
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li>
-                                            <a class="dropdown-item editar-album" href="#"
-                                                data-id="<?= $album['idAlbum'] ?>"
-                                                onclick="event.stopPropagation();">Editar álbum</a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item text-danger eliminar-album" href="#"
-                                                data-id="<?= $album['idAlbum'] ?>">
-                                                Eliminar álbum
-                                            </a>
-                                        </li>
-                                    </ul>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item editar-album" href="#"
+                                        data-id="<?= $album['idAlbum'] ?>"
+                                        onclick="event.stopPropagation();">Editar álbum</a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger eliminar-album" href="#"
+                                        data-id="<?= $album['idAlbum'] ?>"
+                                        onclick="event.stopPropagation();">Eliminar álbum</a>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- El contenido que abre el modal -->
+                            <div class="album-content" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum">
+
+                                <div class="album-img-wrapper">
+                                    <img src="<?= $coverUrl ?>" alt="Portada de álbum" class="album-img">
+                                </div>
+                                <div class="album-info">
+                                    <h5><?= e($album['nombreAlbum']) ?></h5>
+                                    <small class="text-muted">
+                                        <?= (int)$album['total_imagenes'] ?> imágenes • <?= $albumDate->format('d/m/Y') ?>
+                                    </small>
+                                    <div class="d-flex gap-1 align-items-center mt-1">
+                                        <img src="<?= $basePath ?>/assets/images/like.png"
+                                             alt="Me gusta"
+                                             class="img-fluid btn-like-galeria"
+                                             data-idalbum="<?= (int)$album['idAlbum'] ?>"
+                                             style="max-height: 25px; cursor: pointer;">
+                                        <span id="likes-count-album-<?= (int)$album['idAlbum'] ?>" class="text-muted small align-self-center">0</span>
+                                    </div>
                                 </div>
 
-                                <!-- ✅ El contenido que SÍ abre el modal -->
-                                <div class="album-content" data-bs-toggle="modal" data-bs-target="#modalDetalleAlbum">
+                            </div> <!-- FIN del div que abre modal -->
 
-                                    <div class="album-img-wrapper">
-                                        <img src="<?= $coverUrl ?>" alt="Portada de álbum" class="album-img">
-                                    </div>
-
-                                    <div class="album-info">
-                                        <h5><?= e($album['nombreAlbum']) ?></h5>
-                                        <small class="text-muted">
-                                            <?= (int)$album['total_imagenes'] ?> imágenes • <?= $albumDate->format('d/m/Y') ?>
-                                        </small>
-                                    </div>
-
-                                </div> <!-- FIN del div que abre modal -->
-
-                            </div> <!-- FIN del album-card -->
-                        <?php endforeach; ?>
+                        </div> <!-- FIN del album-card -->
+                    <?php endforeach; ?>
 
                     </div>
 
@@ -603,63 +806,69 @@ $conexion->close();
             </div>
 
             <div class="tab-pane fade" id="likes-tab">
-                <!-- Álbumes con Me Gusta -->
-                <h4 class="mb-3">Álbumes de artistas amigos</h4>
-                <div class="album-grid">
-                    <?php if (!empty($albumesVirtuales)): ?>
-                        <?php foreach ($albumesVirtuales as $artista): ?>
-                            <div class="album-card album-card-like"
-                                data-fotos-de-id="<?= (int)$artista['idArtista'] ?>" data-artista-apodo="<?= e($artista['apodoUsuario']) ?>"
-                                data-dador-likes-id="<?= (int)$perfilId ?>">
-
+                <h3 class="mb-4">Contenido que te gusta de usuarios que sigues</h3>
+                <?php if (empty($likedContentByUser)): ?>
+                    <p class="text-muted text-center py-5">No hay contenido con "Me gusta" de usuarios que sigues.</p>
+                <?php else: ?>
+                    <div class="album-grid">
+                        <?php foreach ($likedContentByUser as $userId => $userData): ?>
+                            <?php
+                            // Obtener la primera imagen para mostrar como preview
+                            $previewImage = null;
+                            $previewId = null;
+                            if (!empty($userData['albums'])) {
+                                $previewImage = $userData['albums'][0]['urlPortadaAlbum'];
+                                $previewPath = "$basePath/uploads/portadas/";
+                                $previewId = $userData['albums'][0]['idAlbum'];
+                            } elseif (!empty($userData['images'])) {
+                                $previewImage = $userData['images'][0]['urlImagen'];
+                                $previewPath = "$basePath/uploads/imagenes/";
+                                $previewId = $userData['images'][0]['idAlbumImagen'];
+                            }
+                            ?>
+                            
+                            <!-- Card del usuario que abre el modal de detalle -->
+                            <div class="album-card position-relative" 
+                                data-user-id="<?= $userId ?>"
+                                data-tipo="likes-usuario"
+                                style="cursor: pointer;"
+                                onclick="event.stopPropagation(); cargarDetalleLikesUsuario(<?= $userId ?>);">
                                 <div class="album-img-wrapper">
-                                    <img src="<?= e($artista['fotoPerfil']) ?>"
-                                        alt="Foto de perfil de <?= e($artista['apodoUsuario']) ?>"
-                                        class="album-img"
-                                        style="border: 2px solid #f7931e;">
+                                    <?php
+                                    $previewSrc = "$basePath/assets/images/imagen.png";
+                                    if ($previewImage) {
+                                        if (!empty($userData['albums'])) {
+                                            $portada = $userData['albums'][0]['urlPortadaAlbum'];
+                                            if ($portada && $portada !== 'imagen.png') {
+                                                $previewSrc = "$basePath/uploads/portadas/" . e($portada);
+                                            }
+                                        } elseif (!empty($userData['images'])) {
+                                            $previewSrc = "$basePath/uploads/imagenes/" . e($userData['images'][0]['urlImagen']);
+                                        }
+                                    }
+                                    ?>
+                                    <img src="<?= $previewSrc ?>" 
+                                        alt="Preview" class="album-img">
                                 </div>
-
-                                <div class="album-info text-center">
-                                    <h5><?= e($artista['apodoUsuario']) ?></h5>
-                                    <small class="text-muted">@<?= e(ltrim($artista['arrobaUsuario'], '@')) ?></small>
+                                <div class="album-info">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <?php
+                                        $avatarUrl = obtenerAvatar($userId);
+                                        ?>
+                                        <img src="<?= $avatarUrl ?>" 
+                                            alt="Avatar" 
+                                            class="rounded-circle"
+                                            style="width: 30px; height: 30px; object-fit: cover;">
+                                        <div>
+                                            <h5 class="mb-0"><?= e($userData['user']['apodoUsuario']) ?></h5>
+                                            <small class="text-muted">@<?= e(ltrim($userData['user']['arrobaUsuario'], '@')) ?></small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="col-12 text-center py-5">
-                            <p class="text-muted">Aún no hay nada aquí...</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-                <!-- detalle -->
-                <div class="modal fade" id="modalDetalleAlbumLike" tabindex="-1" aria-labelledby="modalDetalleAlbumLabelLike" aria-hidden="true">
-                    <div class="modal-dialog modal-xl modal-dialog-centered">
-                        <div class="modal-content p-4">
-                            <div class="modal-header d-flex justify-content-between align-items-center">
-                                <div class="d-flex align-items-center gap-3">
-                                    <h5 class="modal-title mb-0" id="modalDetalleAlbumLabelLike"></h5>
-                                </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                                </div>
-                            </div>
-
-
-                            <div class="modal-body">
-                                <div class="row">
-                                    <div class="col-lg-9" id="detalleAlbumIzquierdaLike">
-                                        <!--aca va el carrusel de las imagenes etc -->
-                                        en construccion
-                                    </div>
-
-                                    <div class="col-lg-3" id="detalleAlbumDerechaLike">
-                                        <!--aca va el perfil -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
-                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -691,383 +900,848 @@ $conexion->close();
         </div>
     </div>
     <!-- Modal de confirmación de eliminación -->
-    <div class="modal fade" id="modalConfirmarEliminar" tabindex="-1" aria-hidden="true">
+        <div class="modal fade" id="modalConfirmarEliminar" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title">Eliminar álbum</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-                <div class="modal-body">
-                    ¿Estás seguro de que querés eliminar este álbum? Si elimina, no puede deshacer esa acción.
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" id="btnConfirmarEliminar" class="btn btn-danger">Eliminar</button>
-                </div>
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Eliminar álbum</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que querés eliminar este álbum? Si elimina, no puede deshacer esa acción.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarEliminar" class="btn btn-danger">Eliminar</button>
+            </div>
             </div>
         </div>
-    </div>
-    <!-- Modal estilo éxito al eliminar álbum -->
-    <div id="modalExitoEliminar" class="modal-exito-eliminar" style="display: none;">
+        </div>
+        <!-- Modal estilo éxito al eliminar álbum -->
+        <div id="modalExitoEliminar" class="modal-exito-eliminar" style="display: none;">
         <div class="modal-exito-contenido">
             <div class="icono-check">
-                <i class="bi bi-check2"></i>
+            <i class="bi bi-check2"></i>
             </div>
             <h2>¡Álbum eliminado con éxito!</h2>
             <p>El álbum fue eliminado correctamente.</p>
         </div>
-    </div>
+        </div>
+<script>
+    const basePath = '<?= $basePath ?>'; // Define basePath globalmente
+</script>
+<script>
+function cargarDetalleAlbum(albumId, userId = null) {
+    const url = userId 
+        ? `${basePath}/api/detalleAlbum?id=${albumId}&userId=${userId}&showAll=true`
+        : `${basePath}/api/detalleAlbum?id=${albumId}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const modal = document.getElementById('modalDetalleAlbum');
+            const modalLabel = modal.querySelector('#modalDetalleAlbumLabel');
+            const modalBodyIzq = modal.querySelector('#detalleAlbumIzquierda');
+            const modalBodyDer = modal.querySelector('#detalleAlbumDerecha');
+            const fotoPerfil = modal.querySelector('#modalFotoPerfil');
+
+            // Actualizar contenido
+            if (data.usuario) {
+                modalLabel.textContent = data.usuario.apodoUsuario;
+                if (data.usuario.avatarUrl) {
+                    fotoPerfil.src = `${basePath}/uploads/avatares/${data.usuario.avatarUrl}`;
+                }
+            }
+            modalBodyIzq.innerHTML = data.htmlIzquierda;
+            modalBodyDer.innerHTML = data.htmlDerecha;
+
+            // Inicializar carrusel
+            const carrusel = document.getElementById('carouselAlbum');
+            if (carrusel) {
+                new bootstrap.Carousel(carrusel, { interval: false });
+            }
+        })
+        .catch(error => console.error('Error:', error));
+}
+</script>
+<script>
+function renderAlbumImages(list) {
+  const cont = document.getElementById('albumImagesList');
+  if (!cont) return;
+
+  if (!list || list.length === 0) {
+    cont.innerHTML = `
+      <div class="col-12">
+        <p class="text-muted mb-0">Este álbum no tiene imágenes todavía.</p>
+      </div>`;
+    return;
+  }
+
+  // pinta cards Bootstrap con miniaturas y botón de eliminar
+  cont.innerHTML = list.map(row => {
+    const imgUrl = `${basePath}/uploads/imagenes/${encodeURIComponent(row.urlImagen)}`;
+    const titulo = row.tituloImagen ? row.tituloImagen : '(Sin título)';
+    const desc   = row.descripcionImagen ? row.descripcionImagen : '';
+
+    return `
+      <div class="col-12 col-sm-6 col-md-4" data-imagen-id="${row.idImagen}">
+        <div class="card h-100 shadow-sm position-relative">
+          <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 eliminar-imagen-btn" 
+                  data-imagen-id="${row.idImagen}" 
+                  style="z-index: 10; opacity: 0.9;"
+                  title="Eliminar imagen">
+            <i class="bi bi-trash"></i>
+          </button>
+          <div class="ratio ratio-1x1 editar-imagen-card" style="cursor: pointer;" 
+               data-imagen-id="${row.idImagen}"
+               data-titulo="${escapeHtml(titulo)}"
+               data-descripcion="${escapeHtml(desc)}">
+            <img src="${imgUrl}" class="card-img-top" alt="${titulo}" style="object-fit: cover;">
+          </div>
+          <div class="card-body p-2">
+            <div class="fw-semibold text-truncate" title="${titulo}">${titulo}</div>
+            <div class="text-muted small text-truncate" title="${desc}">${desc}</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  
+  // Agregar event listeners a los botones de eliminar
+  cont.querySelectorAll('.eliminar-imagen-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const idImagen = this.dataset.imagenId;
+      if (confirm('¿Estás seguro de que querés eliminar esta imagen?')) {
+        eliminarImagen(idImagen);
+      }
+    });
+  });
+  
+  // Agregar event listeners para editar imágenes (click en la imagen)
+  cont.querySelectorAll('.editar-imagen-card').forEach(card => {
+    card.addEventListener('click', function(e) {
+      // No abrir si se hizo click en el botón de eliminar
+      if (e.target.closest('.eliminar-imagen-btn')) return;
+      
+      const idImagen = this.dataset.imagenId;
+      const titulo = this.dataset.titulo || '';
+      const descripcion = this.dataset.descripcion || '';
+      
+      abrirModalEditarImagen(idImagen, titulo, descripcion);
+    });
+  });
+}
+
+// Función auxiliar para escapar HTML
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Función para abrir modal de editar imagen
+function abrirModalEditarImagen(idImagen, titulo, descripcion) {
+  document.getElementById('editImagenId').value = idImagen;
+  document.getElementById('editImagenTitulo').value = titulo === '(Sin título)' ? '' : titulo;
+  document.getElementById('editImagenDescripcion').value = descripcion;
+  document.getElementById('imageEditForm').classList.remove('d-none');
+  
+  // Scroll al formulario
+  document.getElementById('imageEditForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function loadAlbumImagesForEdit(idAlbum) {
+  const url = `${basePath}/api/imagenesDeAlbum?idAlbum=${encodeURIComponent(idAlbum)}`;
+  try {
+    const res = await fetch(url, { credentials: 'same-origin' });
+    const data = await res.json();
+    if (data.success) {
+      renderAlbumImages(data.data);
+    } else {
+      console.error('imagenesDeAlbum:', data.message);
+      renderAlbumImages([]);
+    }
+  } catch (e) {
+    console.error(e);
+    renderAlbumImages([]);
+  }
+}
+
+// Función para eliminar una imagen
+async function eliminarImagen(idImagen) {
+  try {
+    const formData = new FormData();
+    formData.append('idImagen', idImagen);
+    
+    const res = await fetch(`${basePath}/api/eliminarImagen`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'same-origin'
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      // Eliminar el elemento del DOM
+      const elemento = document.querySelector(`[data-imagen-id="${idImagen}"]`);
+      if (elemento) {
+        elemento.remove();
+      }
+      
+      // Si no quedan imágenes, mostrar mensaje
+      const cont = document.getElementById('albumImagesList');
+      if (cont && cont.querySelectorAll('[data-imagen-id]').length === 0) {
+        cont.innerHTML = `
+          <div class="col-12">
+            <p class="text-muted mb-0">Este álbum no tiene imágenes todavía.</p>
+          </div>`;
+      }
+    } else {
+      alert('Error: ' + (data.message || 'No se pudo eliminar la imagen'));
+    }
+  } catch (e) {
+    console.error(e);
+    alert('Error de red al eliminar la imagen');
+  }
+}
+</script>
 
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../public/assets/js/perfil.js"></script>
+    <script src="<?= $basePath ?>/assets/js/perfil.js"></script>
 
-    <!-- ====== Pequeño script adicional (solo lo necesario) ======
+    <!-- ====== Pequeño script adicional ======
          Se encarga de actualizar título/descripcion al cambiar slide
          y de re-ligar el evento cuando se abre el modal.
          No modifica nada más del comportamiento actual.
     -->
     <script>
-        (function() {
-            function actualizarInfoImagen() {
-                const carrusel = document.getElementById('carouselAlbum');
-                if (!carrusel) return;
-                const activo = carrusel.querySelector('.carousel-item.active');
-                if (!activo) return;
-                const titulo = activo.getAttribute('data-titulo') || '';
-                const descripcion = activo.getAttribute('data-descripcion') || '';
-                const tituloEl = document.getElementById('tituloImagen');
-                const descEl = document.getElementById('descripcionImagen');
-                if (tituloEl) tituloEl.textContent = titulo;
-                if (descEl) descEl.textContent = descripcion;
-            }
+      (function() {
+        function actualizarInfoImagen() {
+          const carrusel = document.getElementById('carouselAlbum');
+          if (!carrusel) return;
+          const activo = carrusel.querySelector('.carousel-item.active');
+          if (!activo) return;
+          const titulo = activo.getAttribute('data-titulo') || '';
+          const descripcion = activo.getAttribute('data-descripcion') || '';
+          const tituloEl = document.getElementById('tituloImagen');
+          const descEl = document.getElementById('descripcionImagen');
+          if (tituloEl) tituloEl.textContent = titulo;
+          if (descEl) descEl.textContent = descripcion;
+        }
 
-            // Cuando el modal se muestra (después del fetch que inyecta el HTML),
-            // inicializamos/actualizamos la info y vinculamos el event listener.
-            const modal = document.getElementById('modalDetalleAlbum');
-            if (modal) {
-                modal.addEventListener('shown.bs.modal', function() {
-                    // pequeña espera para asegurar que el HTML inyectado esté en el DOM
-                    setTimeout(() => {
-                        actualizarInfoImagen();
+        // Cuando el modal se muestra (después del fetch que inyecta el HTML),
+        // inicializamos/actualizamos la info y vinculamos el event listener.
+        const modal = document.getElementById('modalDetalleAlbum');
+        if (modal) {
+          modal.addEventListener('shown.bs.modal', function () {
+            // pequeña espera para asegurar que el HTML inyectado esté en el DOM
+            setTimeout(() => {
+              actualizarInfoImagen();
 
-                        const carrusel = document.getElementById('carouselAlbum');
-                        if (!carrusel) return;
+              const carrusel = document.getElementById('carouselAlbum');
+              if (!carrusel) return;
 
-                        // Evitar duplicar listeners: quitamos uno previo (si existe) y agregamos otro.
-                        // No usamos nombres de listener complejos para mantener compatibilidad.
-                        carrusel.removeEventListener('slid.bs.carousel', actualizarInfoImagen);
-                        carrusel.addEventListener('slid.bs.carousel', actualizarInfoImagen);
+              // Evitar duplicar listeners: quitamos uno previo (si existe) y agregamos otro.
+              // No usamos nombres de listener complejos para mantener compatibilidad.
+              carrusel.removeEventListener('slid.bs.carousel', actualizarInfoImagen);
+              carrusel.addEventListener('slid.bs.carousel', actualizarInfoImagen);
 
-                        // Inicializar instancia de bootstrap Carousel si no existe
-                        try {
-                            // eslint-disable-next-line no-undef
-                            if (typeof bootstrap !== 'undefined') {
-                                // crear/actualizar instancia (si ya existe, Bootstrap la reutiliza)
-                                new bootstrap.Carousel(carrusel, {
-                                    ride: false
-                                });
-                            }
-                        } catch (e) {
-                            console.warn('No se pudo inicializar carousel:', e);
-                        }
-                    }, 50);
-                });
-
-                // cuando se oculta, limpiamos listeners para evitar duplicados
-                modal.addEventListener('hidden.bs.modal', function() {
-                    const carrusel = document.getElementById('carouselAlbum');
-                    if (carrusel) {
-                        carrusel.removeEventListener('slid.bs.carousel', actualizarInfoImagen);
-                    }
-                });
-            }
-        })();
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-
-            /* =====================================================
-               🟠 1. ACEPTAR / RECHAZAR SOLICITUD DE SEGUIMIENTO
-            ====================================================== */
-            document.querySelectorAll('.aceptar-seguimiento, .rechazar-seguimiento').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const idSeguidor = this.dataset.id || this.dataset.idseguidor || this.dataset.idSeguidor;
-                    const accion = this.classList.contains('aceptar-seguimiento') ? 'aceptar' : 'rechazar';
-
-                    if (!idSeguidor) {
-                        alert('Error interno: faltan datos. Reintentá.');
-                        return;
-                    }
-
-                    fetch('responderSolicitud.php', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded'
-                            },
-                            body: `idSeguidor=${encodeURIComponent(idSeguidor)}&accion=${encodeURIComponent(accion)}`
-                        })
-                        .then(res => res.text())
-                        .then(data => {
-                            data = data.trim();
-                            const followBtn = document.querySelector('#follow-btn');
-
-                            if (data === 'aceptado' && followBtn) {
-                                followBtn.classList.remove('btn-secondary', 'btn-orange-full');
-                                followBtn.classList.add('btn-success-full');
-                                followBtn.innerHTML = '<i class="bi bi-check2 me-2"></i> Siguiendo';
-                                alert("✅ Has aceptado la solicitud. Ahora ambos se siguen.");
-                            } else if (data === 'rechazado' && followBtn) {
-                                followBtn.classList.remove('btn-secondary', 'btn-success-full');
-                                followBtn.classList.add('btn-orange-full');
-                                followBtn.innerHTML = '<i class="bi bi-person-plus me-2"></i> Seguir';
-                                alert("❌ Has rechazado la solicitud de seguimiento.");
-                            } else {
-                                alert('Ocurrió un error: ' + data);
-                            }
-
-                            // Eliminar la notificación
-                            const card = this.closest('.notificacion-card, .list-group-item');
-                            if (card) card.remove();
-                        })
-                        .catch(err => {
-                            console.error(err);
-                            alert("⚠️ Error de red. Intenta nuevamente.");
-                        });
-                });
-            });
-
-            /* =====================================================
-               🟢 2. BOTÓN SEGUIR / DEJAR DE SEGUIR
-            ====================================================== */
-            document.addEventListener('click', function(e) {
-                const btn = e.target.closest('#follow-btn');
-                if (!btn) return;
-
-                const idSeguido = btn.dataset.idSeguido || btn.dataset.idseguido || btn.dataset.id;
-                if (!idSeguido) return;
-
-                const actualizarBoton = (estado) => {
-                    btn.classList.remove('btn-orange-full', 'btn-success-full', 'btn-secondary');
-                    switch (estado) {
-                        case 'siguiendo':
-                            btn.classList.add('btn-success-full');
-                            btn.innerHTML = '<i class="bi bi-check2 me-2"></i> Siguiendo';
-                            break;
-                        case 'pendiente':
-                            btn.classList.add('btn-secondary');
-                            btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Pendiente';
-                            break;
-                        default:
-                            btn.classList.add('btn-orange-full');
-                            btn.innerHTML = '<i class="bi bi-person-plus me-2"></i> Seguir';
-                    }
-                };
-
-                // Si ya sigue o está pendiente → dejar de seguir
-                if (btn.classList.contains('btn-success-full') || btn.classList.contains('btn-secondary')) {
-                    fetch('dejarSeguir.php', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded'
-                            },
-                            body: `idSeguido=${encodeURIComponent(idSeguido)}`
-                        })
-                        .then(res => res.text())
-                        .then(data => {
-                            if (data.trim() === 'ok') {
-                                actualizarBoton('ninguno');
-                                btn.dataset.ignoreCheck = "1";
-                                setTimeout(() => delete btn.dataset.ignoreCheck, 6000);
-                            } else {
-                                alert('Error al dejar de seguir: ' + data);
-                            }
-                        })
-                        .catch(err => console.error(err));
-                    return;
+              // Inicializar instancia de bootstrap Carousel si no existe
+              try {
+                // eslint-disable-next-line no-undef
+                if (typeof bootstrap !== 'undefined') {
+                  // crear/actualizar instancia (si ya existe, Bootstrap la reutiliza)
+                  new bootstrap.Carousel(carrusel, { ride: false });
                 }
+              } catch (e) {
+                console.warn('No se pudo inicializar carousel:', e);
+              }
+            }, 50);
+          });
 
-                // Si no sigue → seguir
-                fetch('seguir.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: `idSeguido=${encodeURIComponent(idSeguido)}`
-                    })
-                    .then(res => res.text())
-                    .then(data => {
-                        const estado = data.trim();
-                        if (estado === 'pendiente' || estado === 'siguiendo') {
-                            actualizarBoton(estado);
-                        }
-                    })
-                    .catch(err => console.error(err));
-            });
-
-            /* =====================================================
-               🔵 3. POLLING: verificar estado del seguimiento cada 5s
-            ====================================================== */
-            setInterval(() => {
-                const btn = document.querySelector('#follow-btn');
-                if (!btn || btn.dataset.ignoreCheck) return;
-
-                const idSeguido = btn.dataset.idSeguido || btn.dataset.idseguido || btn.dataset.id;
-                if (!idSeguido) return;
-
-                fetch('checkFollowStatus.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: `idSeguido=${encodeURIComponent(idSeguido)}`
-                    })
-                    .then(res => res.text())
-                    .then(status => {
-                        const estado = status.trim();
-                        if (['activo', 'aceptado'].includes(estado)) actualizarBoton('siguiendo');
-                        else if (estado === 'pendiente') actualizarBoton('pendiente');
-                        else actualizarBoton('ninguno');
-                    })
-                    .catch(err => console.error(err));
-            }, 5000);
-
-            /* =====================================================
-               🔹 4. MODAL CARRUSEL
-            ====================================================== */
-            const modal = document.getElementById('modalDetalleAlbum');
-            if (modal) {
-                const actualizarInfoImagen = () => {
-                    const carrusel = document.getElementById('carouselAlbum');
-                    if (!carrusel) return;
-                    const activo = carrusel.querySelector('.carousel-item.active');
-                    if (!activo) return;
-
-                    const tituloEl = document.getElementById('tituloImagen');
-                    const descEl = document.getElementById('descripcionImagen');
-
-                    if (tituloEl) tituloEl.textContent = activo.dataset.titulo || '';
-                    if (descEl) descEl.textContent = activo.dataset.descripcion || '';
-                };
-
-                modal.addEventListener('shown.bs.modal', () => {
-                    setTimeout(() => {
-                        actualizarInfoImagen();
-
-                        const carrusel = document.getElementById('carouselAlbum');
-                        if (!carrusel) return;
-
-                        carrusel.removeEventListener('slid.bs.carousel', actualizarInfoImagen);
-                        carrusel.addEventListener('slid.bs.carousel', actualizarInfoImagen);
-
-                        try {
-                            if (typeof bootstrap !== 'undefined') new bootstrap.Carousel(carrusel, {
-                                ride: false
-                            });
-                        } catch (e) {
-                            console.warn('No se pudo inicializar carousel:', e);
-                        }
-                    }, 50);
-                });
-
-                modal.addEventListener('hidden.bs.modal', () => {
-                    const carrusel = document.getElementById('carouselAlbum');
-                    if (carrusel) carrusel.removeEventListener('slid.bs.carousel', actualizarInfoImagen);
-                });
+          // cuando se oculta, limpiamos listeners para evitar duplicados
+          modal.addEventListener('hidden.bs.modal', function () {
+            const carrusel = document.getElementById('carouselAlbum');
+            if (carrusel) {
+              carrusel.removeEventListener('slid.bs.carousel', actualizarInfoImagen);
             }
-
-        });
+          });
+        }
+        
+      })();
     </script>
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            let idAlbumAEliminar = null;
-            let btnEliminarReferencia = null;
+document.addEventListener('DOMContentLoaded', () => {
 
-            const modalEliminar = new bootstrap.Modal(document.getElementById("modalConfirmarEliminar"));
-            const btnConfirmarEliminar = document.getElementById("btnConfirmarEliminar");
+  /* =====================================================
+      1. ACEPTAR / RECHAZAR SOLICITUD DE SEGUIMIENTO
+  ====================================================== */
+    function actualizarBoton(btn, estado) {
 
-            // Delegación de eventos para los botones eliminar
-            document.addEventListener("click", function(e) {
-                const btnEliminar = e.target.closest(".eliminar-album");
-                if (!btnEliminar) return;
+        if (!btn) return;
+        btn.classList.remove('btn-orange-full', 'btn-success-full', 'btn-secondary');
+        switch (estado) {
+        case 'siguiendo':
+            btn.classList.add('btn-success-full');
+            btn.innerHTML = '<i class="bi bi-check2 me-2"></i> Siguiendo';
+            break;
+        case 'pendiente':
+            btn.classList.add('btn-secondary');
+            btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Pendiente';
+            break;
+        default:
+            btn.classList.add('btn-orange-full');
+            btn.innerHTML = '<i class="bi bi-person-plus me-2"></i> Seguir';
+        }
+    }
 
-                e.preventDefault();
-                e.stopPropagation();
+  document.querySelectorAll('.aceptar-seguimiento, .rechazar-seguimiento').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const idSeguidor = this.dataset.id || this.dataset.idseguidor || this.dataset.idSeguidor;
+      const accion = this.classList.contains('aceptar-seguimiento') ? 'aceptar' : 'rechazar';
 
-                idAlbumAEliminar = btnEliminar.dataset.id;
-                btnEliminarReferencia = btnEliminar;
+      if (!idSeguidor) {
+        alert('Error interno: faltan datos. Reintentá.');
+        return;
+      }
 
-                // Mostramos el modal
-                modalEliminar.show();
-            });
+      fetch('<?= $basePath ?>/api/responderSolicitud', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `idSeguidor=${encodeURIComponent(idSeguidor)}&accion=${encodeURIComponent(accion)}`
+      })
+      .then(res => res.text())
+      .then(data => {
+        const respuesta = data.trim();
+        const followBtn = document.querySelector('#follow-btn');
 
-            // Confirmación dentro del modal
-            btnConfirmarEliminar.addEventListener("click", function() {
-                if (!idAlbumAEliminar) return;
+        if (respuesta === 'activo' && followBtn) {
+          actualizarBoton(followBtn, 'siguiendo');
+          alert(" Has aceptado la solicitud. Ahora ambos se siguen.");
+        } else if (respuesta === 'rechazado' && followBtn) {
+          actualizarBoton(followBtn, 'ninguno');
+          alert("❌ Has rechazado la solicitud de seguimiento.");
+        } else {
+          alert('Ocurrió un error: ' + respuesta);
+        }
 
-                fetch("../controllers/eliminarAlbum.php", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/x-www-form-urlencoded"
-                        },
-                        body: "idAlbum=" + encodeURIComponent(idAlbumAEliminar),
-                        credentials: "same-origin",
-                    })
-                    .then((res) => res.json())
-                    .then((data) => {
-                        if (data.success) {
-                            const card = btnEliminarReferencia.closest(".album-card");
-                            if (card) card.remove();
-                            // Cerramos modal y mostramos notificación visual
-                            modalEliminar.hide();
-                            // Mostrar modal personalizado de éxito
-                            const modalExito = document.getElementById("modalExitoEliminar");
-                            modalExito.style.display = "flex";
-                            modalExito.classList.add("fade-in");
+        // Eliminar la notificación
+        const card = this.closest('.notificacion-card, .list-group-item');
+        if (card) card.remove();
+      })
+      .catch(err => {
+        console.error(err);
+        alert(" Error de red. Intenta nuevamente.");
+      });
+    });
+  });
 
-                            // ⏳ Mantenerlo visible 5 segundos, luego desvanecer y redirigir
-                            setTimeout(() => {
-                                modalExito.classList.remove("fade-in");
-                                modalExito.classList.add("fade-out");
+  /* =====================================================
+      2. BOTÓN SEGUIR / DEJAR DE SEGUIR
+  ====================================================== */
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('#follow-btn');
+    if (!btn) return;
 
-                                setTimeout(() => {
-                                    modalExito.style.display = "none";
-                                    // 🔁 Redirigir al home
-                                    window.location.href = "perfil.php";
-                                }, 800); // 0.8s para la animación de salida
-                            }, 3000);
-                        } else {
-                            mostrarToast("Error: " + data.message, "danger");
-                        }
-                    })
-                    .catch((err) => {
-                        console.error(err);
-                        mostrarToast("Error inesperado.", "danger");
-                    });
-            });
+    const idSeguido = btn.dataset.idSeguido || btn.dataset.idseguido || btn.dataset.id;
+    if (!idSeguido) return;
 
-            // Función para mostrar toasts bonitos (requiere Bootstrap 5)
-            function mostrarToast(mensaje, tipo = "info") {
-                const toast = document.createElement("div");
-                toast.className = `toast align-items-center text-bg-${tipo} border-0 position-fixed bottom-0 end-0 m-3`;
-                toast.setAttribute("role", "alert");
-                toast.innerHTML = `
+    // Si ya sigue o está pendiente → dejar de seguir
+    if (btn.classList.contains('btn-success-full') || btn.classList.contains('btn-secondary')) {
+      fetch('<?= $basePath ?>/api/dejarSeguir', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `idSeguido=${encodeURIComponent(idSeguido)}`
+      })
+      .then(res => res.text())
+      .then(data => {
+        if (data.trim() === 'ok') {
+          actualizarBoton(btn, 'ninguno');
+          btn.dataset.ignoreCheck = "1";
+          setTimeout(() => delete btn.dataset.ignoreCheck, 6000);
+        } else {
+          alert('Error al dejar de seguir: ' + data);
+        }
+      })
+      .catch(err => console.error(err));
+      return;
+    }
+
+    // Si no sigue → seguir
+    fetch('<?= $basePath ?>/api/seguir', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: `idSeguido=${encodeURIComponent(idSeguido)}`
+    })
+    .then(res => res.text())
+    .then(data => {
+      const estado = data.trim();
+      if (estado === 'pendiente' || estado === 'siguiendo') {
+        actualizarBoton(btn, estado);
+      }
+    })
+    .catch(err => console.error(err));
+  });
+
+  /* =====================================================
+      POLLING: verificar estado del seguimiento cada 5s
+  ====================================================== */
+  setInterval(() => {
+    const btn = document.querySelector('#follow-btn');
+    if (!btn || btn.dataset.ignoreCheck) return;
+
+    const idSeguido = btn.dataset.idSeguido || btn.dataset.idseguido || btn.dataset.id;
+    if (!idSeguido) return;
+
+    fetch('<?= $basePath ?>/api/checkFollowStatus', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: `idSeguido=${encodeURIComponent(idSeguido)}`
+    })
+    .then(res => res.text())
+    .then(status => {
+      const estado = status.trim();
+      if (['activo','aceptado'].includes(estado)) actualizarBoton(btn, 'siguiendo');
+      else if (estado === 'pendiente') actualizarBoton(btn, 'pendiente');
+      else actualizarBoton(btn, 'ninguno');
+    })
+    .catch(err => console.error(err));
+  }, 5000);
+
+  /* =====================================================
+                        MODAL CARRUSEL
+  ====================================================== */
+  const modal = document.getElementById('modalDetalleAlbum');
+  if (modal) {
+    const actualizarInfoImagen = () => {
+      const carrusel = document.getElementById('carouselAlbum');
+      if (!carrusel) return;
+      const activo = carrusel.querySelector('.carousel-item.active');
+      if (!activo) return;
+
+      const tituloEl = document.getElementById('tituloImagen');
+      const descEl = document.getElementById('descripcionImagen');
+
+      if (tituloEl) tituloEl.textContent = activo.dataset.titulo || '';
+      if (descEl) descEl.textContent = activo.dataset.descripcion || '';
+    };
+
+    modal.addEventListener('shown.bs.modal', () => {
+      setTimeout(() => {
+        actualizarInfoImagen();
+
+        const carrusel = document.getElementById('carouselAlbum');
+        if (!carrusel) return;
+
+        carrusel.removeEventListener('slid.bs.carousel', actualizarInfoImagen);
+        carrusel.addEventListener('slid.bs.carousel', actualizarInfoImagen);
+
+        try { if (typeof bootstrap !== 'undefined') new bootstrap.Carousel(carrusel, { ride: false }); }
+        catch(e){ console.warn('No se pudo inicializar carousel:', e); }
+      }, 50);
+    });
+
+    modal.addEventListener('hidden.bs.modal', () => {
+      const carrusel = document.getElementById('carouselAlbum');
+      if (carrusel) carrusel.removeEventListener('slid.bs.carousel', actualizarInfoImagen);
+    });
+  }
+
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  let idAlbumAEliminar = null;
+  let btnEliminarReferencia = null;
+
+  const modalEliminar = new bootstrap.Modal(document.getElementById("modalConfirmarEliminar"));
+  const btnConfirmarEliminar = document.getElementById("btnConfirmarEliminar");
+ 
+  const btnEliminarAlbum = document.querySelectorAll(".eliminar-album");
+
+  // Delegación de eventos para los botones eliminar
+    btnEliminarAlbum.forEach(btn => {
+        btn.addEventListener("click", function (e) {
+
+            console.log(btn);
+            if (!btn) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            idAlbumAEliminar = btn.dataset.id;
+            btnEliminarReferencia = btn;
+
+            // Mostramos el modal
+            modalEliminar.show();
+        });
+    });
+
+  // Confirmación dentro del modal
+  btnConfirmarEliminar.addEventListener("click", function () {
+    if (!idAlbumAEliminar) return;
+
+    fetch('<?= $basePath ?>/api/eliminarAlbum', {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "idAlbum=" + encodeURIComponent(idAlbumAEliminar),
+      credentials: "same-origin",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          const card = btnEliminarReferencia.closest(".album-card");
+          if (card) card.remove();
+          // Cerramos modal y mostramos notificación visual
+          modalEliminar.hide();
+         // Mostrar modal personalizado de éxito
+        const modalExito = document.getElementById("modalExitoEliminar");
+        modalExito.style.display = "flex";
+        modalExito.classList.add("fade-in");
+
+        // Mantenerlo visible 5 segundos, luego desvanecer y redirigir
+        setTimeout(() => {
+            modalExito.classList.remove("fade-in");
+            modalExito.classList.add("fade-out");
+
+            setTimeout(() => {
+            modalExito.style.display = "none";
+            // Redirigir al home
+            window.location.href = "<?= $basePath ?>/perfil";
+            }, 800); // 0.8s para la animación de salida
+        }, 3000);
+        } else {
+          mostrarToast("Error: " + data.message, "danger");
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        mostrarToast("Error inesperado.", "danger");
+      });
+  });
+
+  // Función para mostrar toasts bonitos 
+  function mostrarToast(mensaje, tipo = "info") {
+    const toast = document.createElement("div");
+    toast.className = `toast align-items-center text-bg-${tipo} border-0 position-fixed bottom-0 end-0 m-3`;
+    toast.setAttribute("role", "alert");
+    toast.innerHTML = `
       <div class="d-flex">
         <div class="toast-body">${mensaje}</div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
       </div>
     `;
-                document.body.appendChild(toast);
-                const bsToast = new bootstrap.Toast(toast, {
-                    delay: 3000
+    document.body.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+    bsToast.show();
+    toast.addEventListener("hidden.bs.toast", () => toast.remove());
+  }
+});
+document.addEventListener('DOMContentLoaded', function() {
+    // Preview cover image when selected
+    document.querySelector('input[name="portada"]').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            const preview = document.getElementById('editAlbumPortadaPreview');
+            
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                const container = document.getElementById('portadaPreviewContainer');
+                if (container) {
+                    container.style.display = 'block';
+                } else {
+                    preview.style.display = 'block';
+                }
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Botón para eliminar portada
+    const btnEliminarPortada = document.querySelector('.eliminar-portada-btn');
+    if (btnEliminarPortada) {
+        btnEliminarPortada.addEventListener('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const idAlbum = document.getElementById('editAlbumId').value;
+            if (!idAlbum) {
+                alert('Error: No se encontró el ID del álbum');
+                return;
+            }
+            
+            if (!confirm('¿Estás seguro de que querés eliminar la portada?')) {
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('idAlbum', idAlbum);
+                
+                const res = await fetch(`${basePath}/api/eliminarPortadaAlbum`, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
                 });
-                bsToast.show();
-                toast.addEventListener("hidden.bs.toast", () => toast.remove());
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    // Actualizar preview con imagen por defecto
+                    const container = document.getElementById('portadaPreviewContainer');
+                    const preview = document.getElementById('editAlbumPortadaPreview');
+                    if (preview) {
+                        // Cambiar a imagen por defecto
+                        preview.src = `${basePath}/assets/images/imagen.png`;
+                        if (container) {
+                            container.style.display = 'block';
+                        } else {
+                            preview.style.display = 'block';
+                        }
+                    }
+                    // Limpiar input
+                    document.querySelector('input[name="portada"]').value = '';
+                    alert('Portada eliminada correctamente');
+                } else {
+                    alert('Error: ' + (data.message || 'No se pudo eliminar la portada'));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error de red al eliminar la portada');
             }
         });
-    </script>
+    }
 
-</body>
+    // Show current cover when opening modal
+    document.querySelectorAll('.editar-album').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const albumId = this.dataset.id;
+            const card = this.closest('.album-card');
+            const titulo = card.querySelector('h5').textContent;
+            const portadaActual = card.querySelector('img').src;
+            
+            // Obtener datos completos del álbum
+            try {
+                const res = await fetch(`${basePath}/api/obtenerDatosAlbum?idAlbum=${encodeURIComponent(albumId)}`, {
+                    credentials: 'same-origin'
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    // Set values in modal
+                    document.getElementById('editAlbumId').value = data.data.idAlbum;
+                    document.getElementById('editAlbumTitulo').value = data.data.titulo;
+                    
+                    // Set privacidad
+                    const selectPrivacidad = document.querySelector('select[name="esPublico"]');
+                    if (selectPrivacidad) {
+                        selectPrivacidad.value = data.data.esPublico;
+                    }
+                } else {
+                    // Fallback a valores del card
+                    document.getElementById('editAlbumId').value = albumId;
+                    document.getElementById('editAlbumTitulo').value = titulo;
+                }
+            } catch (e) {
+                console.error('Error al obtener datos del álbum:', e);
+                // Fallback a valores del card
+                document.getElementById('editAlbumId').value = albumId;
+                document.getElementById('editAlbumTitulo').value = titulo;
+            }
+            
+            // Show current cover
+            const preview = document.getElementById('editAlbumPortadaPreview');
+            const container = document.getElementById('portadaPreviewContainer');
+            if (preview) {
+                preview.src = portadaActual;
+                if (container) {
+                    container.style.display = 'block';
+                } else {
+                    preview.style.display = 'block';
+                }
+            }
+            // Ocultar formulario de edición de imagen al abrir modal
+            document.getElementById('imageEditForm').classList.add('d-none');
+            loadAlbumImagesForEdit(albumId);
+            new bootstrap.Modal(document.getElementById('modalEditarAlbum')).show();
+        });
+    });
 
-</html>
+    // Botón para agregar nuevas imágenes
+    const btnAgregarImagenes = document.getElementById('btnAgregarImagenes');
+    const inputNuevasImagenes = document.getElementById('inputNuevasImagenes');
+    
+    if (btnAgregarImagenes && inputNuevasImagenes) {
+        btnAgregarImagenes.addEventListener('click', function() {
+            inputNuevasImagenes.click();
+        });
+        
+        inputNuevasImagenes.addEventListener('change', async function() {
+            const files = Array.from(this.files);
+            if (files.length === 0) return;
+            
+            const idAlbum = document.getElementById('editAlbumId').value;
+            if (!idAlbum) {
+                alert('Error: No se encontró el ID del álbum');
+                return;
+            }
+            
+            // Crear FormData con las nuevas imágenes
+            const formData = new FormData();
+            formData.append('idAlbum', idAlbum);
+            formData.append('cantidadImagenes', files.length);
+            
+            files.forEach((file, index) => {
+                formData.append(`imagen${index}`, file);
+                formData.append(`tituloImagen${index}`, '');
+                formData.append(`descripcionImagen${index}`, '');
+                formData.append(`etiquetaImagen${index}`, '');
+            });
+            
+            try {
+                const res = await fetch(`${basePath}/api/agregarImagenesAlbum`, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    // Recargar las imágenes del álbum
+                    await loadAlbumImagesForEdit(idAlbum);
+                    // Ocultar formulario de edición si estaba abierto
+                    document.getElementById('imageEditForm').classList.add('d-none');
+                    
+                    // Si solo se agregó una imagen, abrir el formulario de edición automáticamente
+                    if (files.length === 1) {
+                        // Esperar a que se recarguen las imágenes y obtener la primera (más reciente)
+                        setTimeout(async () => {
+                            try {
+                                const url = `${basePath}/api/imagenesDeAlbum?idAlbum=${encodeURIComponent(idAlbum)}`;
+                                const res = await fetch(url, { credentials: 'same-origin' });
+                                const data = await res.json();
+                                if (data.success && data.data && data.data.length > 0) {
+                                    // La primera imagen es la más reciente (ordenadas DESC)
+                                    const nuevaImagen = data.data[0];
+                                    abrirModalEditarImagen(nuevaImagen.idImagen, nuevaImagen.tituloImagen || '', nuevaImagen.descripcionImagen || '');
+                                }
+                            } catch (e) {
+                                console.error('Error al obtener imagen nueva:', e);
+                            }
+                        }, 500);
+                    }
+                    
+                    alert(data.message || 'Imágenes agregadas correctamente');
+                    // Limpiar el input
+                    this.value = '';
+                } else {
+                    alert('Error: ' + (data.message || 'No se pudieron agregar las imágenes'));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error de red al agregar las imágenes');
+            }
+        });
+    }
+
+    // Handle form submission
+    document.getElementById('btnGuardarEdicion').addEventListener('click', async function () {
+    const form = document.getElementById('formEditarAlbum');
+    const formData = new FormData(form);
+
+    try {
+        const res = await fetch(`${basePath}/api/editarAlbum`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin', // importante para la cookie de sesión
+        });
+
+        const raw = await res.text();
+        let data;
+        try { data = JSON.parse(raw); } catch { data = { success: false, message: raw }; }
+
+        if (!res.ok || !data.success) {
+        console.error('HTTP', res.status, data);
+        alert((data && data.message) ? data.message : `Error ${res.status}`);
+        return;
+        }
+
+        location.reload();
+    } catch (e) {
+        console.error(e);
+        alert('Error de red o CORS');
+    }
+    });
+    
+    // Botón cancelar edición de imagen
+    const btnCancelarEditarImagen = document.getElementById('btnCancelarEditarImagen');
+    if (btnCancelarEditarImagen) {
+        btnCancelarEditarImagen.addEventListener('click', function() {
+            document.getElementById('imageEditForm').classList.add('d-none');
+            // Limpiar formulario
+            document.getElementById('editImagenId').value = '';
+            document.getElementById('editImagenTitulo').value = '';
+            document.getElementById('editImagenDescripcion').value = '';
+        });
+    }
+    
+    // Botón guardar edición de imagen
+    const btnGuardarImagen = document.getElementById('btnGuardarImagen');
+    if (btnGuardarImagen) {
+        btnGuardarImagen.addEventListener('click', async function() {
+            const idImagen = document.getElementById('editImagenId').value;
+            const titulo = document.getElementById('editImagenTitulo').value.trim();
+            const descripcion = document.getElementById('editImagenDescripcion').value.trim();
+            
+            if (!idImagen) {
+                alert('Error: No se encontró el ID de la imagen');
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('idImagen', idImagen);
+                formData.append('titulo', titulo);
+                formData.append('descripcion', descripcion);
+                
+                const res = await fetch(`${basePath}/api/actualizarImagen`, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    // Ocultar formulario
+                    document.getElementById('imageEditForm').classList.add('d-none');
+                    
+                    // Recargar imágenes para actualizar la vista
+                    const idAlbum = document.getElementById('editAlbumId').value;
+                    if (idAlbum) {
+                        loadAlbumImagesForEdit(idAlbum);
+                    }
+                    
+                    alert('Imagen actualizada correctamente');
+                } else {
+                    alert('Error: ' + (data.message || 'No se pudo actualizar la imagen'));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error de red al actualizar la imagen');
+            }
+        });
+    }
+
+
+});
+</script>
+
+<?php include VIEW_PATH . '/footer.php'; ?>

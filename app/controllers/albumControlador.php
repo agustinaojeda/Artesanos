@@ -4,8 +4,8 @@
 // Recibe solicitudes, llama al modelo correspondiente y devuelve los datos.
 // No contiene lógica de negocio ni acceso directo a la base de datos.
 
-include '../models/albumModelo.php';
-include '../models/imagenModelo.php';
+require_once MODEL_PATH . '/albumModelo.php';
+require_once MODEL_PATH . '/imagenModelo.php';
 
 class AlbumCont{
     private $albumModelo;
@@ -29,13 +29,6 @@ class AlbumCont{
     public function guardarImagen($idAlbum, $titulo, $descripcion, $etiqueta, $url){
         $imagenModelo = new ImagenModelo();
         return $imagenModelo->crearImagen($idAlbum, $titulo, $descripcion, $etiqueta, $url);
-    }
-
-    public function obtenerAlbumesVirtualesDeLikes(int $usuarioId){
-        return $this->albumModelo->obtenerAlbumesVirtualesDeLikes($usuarioId);
-    }
-    public function obtenerImagenesLikeadasDelArtista(int $usuarioId, int $artistaId){
-        return $this->albumModelo->obtenerImagenesLikeadasDelArtista($usuarioId, $artistaId);
     }
 }
 ?>

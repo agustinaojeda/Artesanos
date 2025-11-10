@@ -1,7 +1,6 @@
 <?php
-session_start();
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
 
 $conexion = abrirConexion();
 
@@ -36,10 +35,6 @@ if ($result->num_rows > 0) {
                 $icon = '<i class="bi bi-person-check-fill text-success fs-5"></i>';
                 break;
 
-            case 'nuevo_seguimiento':
-                $icon = '<i class="bi bi-person-check-fill text-success fs-5"></i>';
-                break;
-
             case 'rechazo_seguimiento':
                 $icon = '<i class="bi bi-person-dash-fill text-danger fs-5"></i>';
                 break;
@@ -65,8 +60,8 @@ if ($result->num_rows > 0) {
         $mensajeAMostrar = htmlspecialchars($row['mensaje']);
 
         // Si es respuesta de seguimiento, agregamos enlace al perfil
-        if ($row['tipo'] === 'aceptar_seguimiento' || $row['tipo'] === 'solicitud_seguir' || $row['tipo'] === 'album_nuevo') {
-            $perfilUrl = "perfil.php?id=" . $row['idUsuarioAccion'];
+        if ($row['tipo'] === 'aceptar_seguimiento' || $row['tipo'] === 'solicitud_seguir') {
+            $perfilUrl = "perfil?id=" . $row['idUsuarioAccion'];
             $mensajeAMostrar .= " <a href='$perfilUrl' class='text-decoration-none'>Ver perfil</a>";
            
         }

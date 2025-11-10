@@ -1,7 +1,7 @@
 <?php
 
 // Clase entidad: representa un álbum como objeto.
-// No accede directamente a la base de datos, solo modela los datos.
+// No accede directamente a la base de datos, solo modela los datos :p
 
 class Album{
     private $idAlbum, $tituloAlbum, $esPublico, $urlPortada, $idUsuario, $apodoUsuario, $arrobaUsuario, $fechaCreacion;

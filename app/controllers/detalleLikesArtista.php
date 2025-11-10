@@ -1,19 +1,12 @@
 <?php
 //carga el detalle del album de likes de un artista en el perfil
-ini_set('display_errors', 0);
-error_reporting(0);
-
 header('Content-Type: application/json; charset=utf-8');
 
-// Incluir los helpers/modelos necesarios
-require_once dirname(__DIR__) . '/models/albumModelo.php';
-require_once dirname(__DIR__) . '/models/imagenModelo.php';
-require_once dirname(__DIR__) . '/models/comentarioModelo.php';
-require_once dirname(__DIR__) . '/models/usuarioHelper.php';
+require_once MODEL_PATH . '/albumModelo.php';
+require_once MODEL_PATH . '/imagenModelo.php';
+require_once MODEL_PATH . '/comentarioModelo.php';
+require_once MODEL_PATH . '/usuarioHelper.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 
 $idUsuarioLogueado = $_SESSION['usuario']['id'] ?? 0;
 
@@ -62,7 +55,7 @@ if (!empty($imagenes)) {
             data-fechaunix="' . $fechaUnix . '"
             data-nombrealbum="' . htmlspecialchars($img['nombreAlbum'] ?? '') . '">
             <div style="width: 100%; max-width: 500px; aspect-ratio: 1 / 1; overflow: hidden; margin: auto;">
-                <img src="../../public/uploads/imagenes/' . htmlspecialchars($img['urlImagen'] ?? 'sin-imagen.png') . '" 
+                <img src="' . $basePath . '/uploads/imagenes/' . htmlspecialchars($img['urlImagen'] ?? 'sin-imagen.png') . '" 
                     class="w-100 h-100" style="object-fit: contain;">
             </div>
         </div>';
@@ -90,7 +83,7 @@ $htmlIzquierda .= '
 $idImagenInicial = $imagenes[0]['idImagen'] ?? 0;
 $htmlIzquierda .= '
 <div class="d-flex align-items-center mb-3 gap-2">
-    <img src="../../public/assets/images/like.png" 
+    <img src="' . $basePath . '/assets/images/like.png" 
         alt="Me gusta" 
         id="btn-like-imagen" 
         data-idimagen="' . $idImagenInicial . '"
@@ -100,7 +93,7 @@ $htmlIzquierda .= '
     <span id="likes-count-display" class="text-muted small align-self-center me-3">0</span>
     
     <a href="#formularioComentario" class="d-flex align-items-center text-decoration-none text-dark">
-        <img src="../../public/assets/images/comentario.png" 
+        <img src="' . $basePath . '/assets/images/comentario.png" 
             alt="Comentario" 
             class="img-fluid" 
             style="max-height: 27px; cursor: pointer;">

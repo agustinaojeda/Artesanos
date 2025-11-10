@@ -1,6 +1,6 @@
 <?php
-require_once '../../config/conexion.php';
-require_once '../../config/cerrarConexion.php';
+require_once CONFIG_PATH . '/conexion.php';
+require_once CONFIG_PATH . '/cerrarConexion.php';
 include 'imagen.php';
 
 // Clase modelo: contiene la lógica de acceso a datos.
@@ -33,32 +33,43 @@ class ImagenModelo
     public function mostrarPorAlbum(Album $a)
     {
         $conexion = abrirConexion();
+        if (!$conexion) {
+            error_log('[mostrarPorAlbum] No se pudo abrir conexión');
+            return false;
+        }
 
         $idAlbum = (int)$a->idAlbum;
 
-        $consulta = "SELECT * FROM imagen WHERE idAlbumImagen = $idAlbum ORDER BY idImagen DESC;";
+        $consulta = "SELECT * 
+                    FROM imagen 
+                    WHERE idAlbumImagen = $idAlbum 
+                    ORDER BY idImagen DESC";
+
         $resultado = mysqli_query($conexion, $consulta);
+        if ($resultado === false) {
+            // Error SQL
+            error_log('[mostrarPorAlbum] SQL error: ' . mysqli_error($conexion));
+            cerrarConexion($conexion);
+            return false;
+        }
 
         $imagenes = [];
         if (mysqli_num_rows($resultado) > 0) {
             while ($fila = mysqli_fetch_assoc($resultado)) {
-                $imagen = [
-                    'idImagen' => $fila['idImagen'],
-                    'tituloImagen' => $fila['tituloImagen'],
-                    'descripcionImagen' => $fila['descripcionImagen'],
-                    'etiquetaImagen' => $fila['etiquetaImagen'],
-                    'fechaImagen' => $fila['fechaImagen'],
-                    'urlImagen' => $fila['urlImagen'],
-                    'idAlbumImagen' => $fila['idAlbumImagen']
+                $imagenes[] = [
+                    'idImagen'        => $fila['idImagen'],
+                    'tituloImagen'    => $fila['tituloImagen'],
+                    'descripcionImagen'=> $fila['descripcionImagen'],
+                    'etiquetaImagen'  => $fila['etiquetaImagen'],
+                    'fechaImagen'     => $fila['fechaImagen'],
+                    'urlImagen'       => $fila['urlImagen'],
+                    'idAlbumImagen'   => $fila['idAlbumImagen'],
                 ];
-                $imagenes[] = $imagen;
             }
-            cerrarConexion($conexion);
-            return $imagenes;
-        } else {
-            cerrarConexion($conexion); //si hubo errores o no hay imagenes devuelve falso
-            return false;
         }
+
+        cerrarConexion($conexion);
+        return $imagenes; // [] si no hay imágenes
     }
     // ... después de la llave de cierre de mostrarPorAlbum()...
 
@@ -68,10 +79,10 @@ class ImagenModelo
      * @param int $idUsuario El ID del usuario que da el Like.
      * @return array Un array con 'accion' (like/dislike) y 'totalLikes'.
      */
-    public function toggleLike(int $idImagen, int $idUsuario)
+    public function toggleLike(int $idImagen, int $idUsuario): array
     {
         $conexion = abrirConexion();
-
+        
         // Sanear las entradas
         $idImagen = (int)$idImagen;
         $idUsuario = (int)$idUsuario;
@@ -94,56 +105,57 @@ class ImagenModelo
         $resultadoAccion = mysqli_query($conexion, $consultaAccion);
 
         if (!$resultadoAccion) {
-            // Si la acción falla, lanzamos una excepción o devolvemos un error
-            cerrarConexion($conexion);
-            throw new Exception("Error al procesar el like en la BD: " . mysqli_error($conexion));
+             // Si la acción falla, lanzamos una excepción o devolvemos un error
+             cerrarConexion($conexion);
+             throw new Exception("Error al procesar el like en la BD: " . mysqli_error($conexion));
         }
 
-        //crear la notificacion solo si es un like
+        // Enviar notificación cuando se da like (no cuando se quita)
         if ($accion === 'like') {
-            try {
-                // A. Obtener el ID del dueño de la foto (Usuario Destino)
-                $stmtOwner = $conexion->prepare("
-                SELECT a.idUsuarioAlbum 
-                FROM imagen i
-                JOIN album a ON i.idAlbumImagen = a.idAlbum
-                WHERE i.idImagen = ? LIMIT 1
-            ");
-                $stmtOwner->bind_param("i", $idImagen);
-                $stmtOwner->execute();
-                $resultOwner = $stmtOwner->get_result();
-                $ownerData = $resultOwner->fetch_assoc();
-                $stmtOwner->close();
+            $this->enviarNotificacionLikeFoto($idImagen, $idUsuario, $conexion);
+        }
 
-                if ($ownerData && isset($ownerData['idUsuarioAlbum'])) {
-                    $idUsuarioDestino = (int)$ownerData['idUsuarioAlbum'];
+        // 2. Obtener el nuevo conteo de likes
+        $totalLikes = $this->contarLikes($idImagen, $conexion); 
 
-                    // B. Insertar notificación (solo si no es un auto-like)
-                    if ($idUsuarioDestino > 0 && $idUsuarioDestino != $idUsuario) {
-                        $tipo = 'like';
-                        $mensaje = " le ha dado me gusta a tu foto.";
+        // 3. Cerrar conexión y devolver resultado
+        cerrarConexion($conexion);
+        return ['accion' => $accion, 'totalLikes' => $totalLikes];
+    }
 
-                        $stmtNotif = $conexion->prepare("
-                        INSERT INTO notificaciones (idUsuarioDestino, idUsuarioAccion, tipo, mensaje, leida, fecha) 
-                        VALUES (?, ?, ?, ?, 0, NOW())
-                    ");
-                        $stmtNotif->bind_param("iiss", $idUsuarioDestino, $idUsuario, $tipo, $mensaje);
-                        $stmtNotif->execute(); // Se inserta la notificación
-                        $stmtNotif->close();
-                    }
-                }
-            } catch (Exception $e) {
-                error_log("Error al crear notificación: " . $e->getMessage());
+    private function enviarNotificacionLikeFoto(int $idImagen, int $idUsuarioLike, $conexion)
+    {
+        // Obtener el álbum al que pertenece la foto y el propietario del álbum
+        $sqlFoto = "SELECT a.idUsuarioAlbum, a.tituloAlbum 
+                    FROM album a
+                    JOIN imagen i ON i.idAlbumImagen = a.idAlbum
+                    WHERE i.idImagen = ?";
+        $stmt1 = $conexion->prepare($sqlFoto);
+        $stmt1->bind_param("i", $idImagen);
+        $stmt1->execute();
+        $result = $stmt1->get_result();
+        $row = $result->fetch_assoc();
+        $stmt1->close();
+
+        if ($row) {
+            $idUsuarioDestino = $row['idUsuarioAlbum'];
+            $tituloAlbum = $row['tituloAlbum'];
+
+            // Solo enviar notificación si el usuario que da like no es el propietario del álbum
+            if ($idUsuarioDestino != $idUsuarioLike) {
+                $mensaje = "le dio like a una foto de tu álbum '$tituloAlbum'";
+                $tipo = "like";
+
+                $sqlNotif = "INSERT INTO notificaciones (idUsuarioDestino, idUsuarioAccion, tipo, mensaje, leida, fecha)
+                             VALUES (?, ?, ?, ?, 0, NOW())";
+                $stmt2 = $conexion->prepare($sqlNotif);
+                $stmt2->bind_param("iiss", $idUsuarioDestino, $idUsuarioLike, $tipo, $mensaje);
+                $stmt2->execute();
+                $stmt2->close();
             }
-
-            // 2. Obtener el nuevo conteo de likes
-            $totalLikes = $this->contarLikes($idImagen, $conexion);
-
-            // 3. Cerrar conexión y devolver resultado
-            cerrarConexion($conexion);
-            return ['accion' => $accion, 'totalLikes' => $totalLikes];
         }
     }
+
     /**
      * Cuenta el número de 'Me Gusta' para una imagen específica.
      * @param int $idImagen El ID de la imagen.
@@ -159,10 +171,10 @@ class ImagenModelo
         }
 
         $idImagen = (int)$idImagen;
-
+        
         $consulta = "SELECT COUNT(*) as total FROM megusta WHERE idImagenLike = $idImagen;";
         $resultado = mysqli_query($conexion, $consulta);
-
+        
         $total = 0;
         if ($resultado && $fila = mysqli_fetch_assoc($resultado)) {
             $total = (int)$fila['total'];
@@ -171,7 +183,118 @@ class ImagenModelo
         if ($cerrar) {
             cerrarConexion($conexion);
         }
-
+        
         return $total;
     }
+
+    /**
+     * Elimina una imagen de la base de datos y del sistema de archivos
+     * @param int $idImagen El ID de la imagen a eliminar
+     * @param int $idUsuario El ID del usuario (para verificar propiedad)
+     * @return bool True si se eliminó correctamente, False en caso contrario
+     */
+    public function eliminarImagen(int $idImagen, int $idUsuario): bool
+    {
+        $conexion = abrirConexion();
+        
+        // Primero obtener la URL de la imagen y verificar que pertenece a un álbum del usuario
+        $sql = "SELECT i.urlImagen, a.idUsuarioAlbum 
+                FROM imagen i 
+                JOIN album a ON i.idAlbumImagen = a.idAlbum 
+                WHERE i.idImagen = ? AND a.idUsuarioAlbum = ?";
+        $stmt = $conexion->prepare($sql);
+        if (!$stmt) {
+            cerrarConexion($conexion);
+            return false;
+        }
+        
+        $stmt->bind_param("ii", $idImagen, $idUsuario);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $stmt->close();
+        
+        if (!$row) {
+            cerrarConexion($conexion);
+            return false; // No existe o no pertenece al usuario
+        }
+        
+        // Eliminar el archivo físico
+        $urlImagen = $row['urlImagen'];
+        if ($urlImagen) {
+            $publicPath = rtrim(BASE_PATH, '/\\') . '/public';
+            $rutaArchivo = $publicPath . '/uploads/imagenes/' . basename($urlImagen);
+            if (is_file($rutaArchivo)) {
+                @unlink($rutaArchivo);
+            }
+        }
+        
+        // Eliminar de la base de datos
+        $sqlDelete = "DELETE FROM imagen WHERE idImagen = ?";
+        $stmtDelete = $conexion->prepare($sqlDelete);
+        if (!$stmtDelete) {
+            cerrarConexion($conexion);
+            return false;
+        }
+        
+        $stmtDelete->bind_param("i", $idImagen);
+        $ok = $stmtDelete->execute();
+        $stmtDelete->close();
+        cerrarConexion($conexion);
+        
+        return (bool)$ok;
+    }
+
+    /**
+     * Actualiza el título y descripción de una imagen
+     * @param int $idImagen El ID de la imagen a actualizar
+     * @param int $idUsuario El ID del usuario (para verificar propiedad)
+     * @param string $titulo Nuevo título (puede estar vacío)
+     * @param string $descripcion Nueva descripción (puede estar vacía)
+     * @return bool True si se actualizó correctamente, False en caso contrario
+     */
+    public function actualizarImagen(int $idImagen, int $idUsuario, string $titulo, string $descripcion): bool
+    {
+        $conexion = abrirConexion();
+        
+        // Verificar que la imagen pertenece a un álbum del usuario
+        $sql = "SELECT i.idImagen 
+                FROM imagen i 
+                JOIN album a ON i.idAlbumImagen = a.idAlbum 
+                WHERE i.idImagen = ? AND a.idUsuarioAlbum = ?";
+        $stmt = $conexion->prepare($sql);
+        if (!$stmt) {
+            cerrarConexion($conexion);
+            return false;
+        }
+        
+        $stmt->bind_param("ii", $idImagen, $idUsuario);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $stmt->close();
+        
+        if (!$row) {
+            cerrarConexion($conexion);
+            return false; // No existe o no pertenece al usuario
+        }
+        
+        // Actualizar título y descripción
+        $sqlUpdate = "UPDATE imagen SET tituloImagen = ?, descripcionImagen = ? WHERE idImagen = ?";
+        $stmtUpdate = $conexion->prepare($sqlUpdate);
+        if (!$stmtUpdate) {
+            cerrarConexion($conexion);
+            return false;
+        }
+        
+        $titulo = trim($titulo);
+        $descripcion = trim($descripcion);
+        $stmtUpdate->bind_param("ssi", $titulo, $descripcion, $idImagen);
+        $ok = $stmtUpdate->execute();
+        $stmtUpdate->close();
+        cerrarConexion($conexion);
+        
+        return (bool)$ok;
+    }
 }
+
