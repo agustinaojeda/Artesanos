@@ -252,7 +252,7 @@ include VIEW_PATH . '/header.php';
 </div>
 
 <script>
-    // Toggle password visibility
+    // Alternar visibilidad de la contraseña
     document.getElementById('togglePassword1').addEventListener('click', function() {
         const passwordField = document.getElementById('newPassword');
         const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
@@ -269,7 +269,7 @@ include VIEW_PATH . '/header.php';
         this.classList.toggle('bi-eye-slash');
     });
     
-    // Form validation
+    // Validación de formularios
     const form = document.getElementById('resetPasswordForm');
     const password = document.getElementById('newPassword');
     const confirm = document.getElementById('confirmPassword');

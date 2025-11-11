@@ -1,5 +1,5 @@
 <?php
-// Controlador para eliminar la foto de perfil actual (poner imagen por defecto)
+// Controlador para eliminar la foto de perfil actual 
 header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0);
 error_reporting(E_ALL);

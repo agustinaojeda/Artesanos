@@ -1,8 +1,7 @@
 <?php
-// ✅ API: SIEMPRE JSON. Nuca HTML de errores.
+// API: SIEMPRE JSON. Nuca HTML de errores.
 header('Content-Type: application/json; charset=utf-8');
 
-// No imprimas warnings/notices como HTML en APIs
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
@@ -25,7 +24,7 @@ try {
 
     $modelo = new AlbumModelo();
 
-    // ✅ SI EL MÉTODO NO EXISTE, devolvemos error legible
+    // SI EL MÉTODO NO EXISTE, devolvemos error legible
     if (!method_exists($modelo, 'listarImagenesDeAlbum')) {
         throw new Exception('Falta método listarImagenesDeAlbum en AlbumModelo');
     }

@@ -45,9 +45,10 @@ public/
 ## Puesta en Marcha (local)
 
 1. Requisitos: `XAMPP`, `PHP 8.2+`, `MySQL 8+`.
-2. Arranca el servidor embebido:
+2. Descarga la base de datos en scripts.
+3. Arranca el servidor embebido:
    - `php -S 127.0.0.1:8000 -t c:\xampp\htdocs\Social_Artesanos\Artesanos`
-3. Abre `http://127.0.0.1:8000/app/views/home.php`.
+4. Abre `http://127.0.0.1:8000/app/views/home.php`.
 
 > [!NOTE]
 > El cálculo del tiempo relativo usa `Date.now()` del dispositivo, evitando desfases por zona horaria.

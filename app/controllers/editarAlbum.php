@@ -1,7 +1,6 @@
 <?php
-// 🔧 Evita que PHP mezcle HTML de errores con tu JSON
+//Evita que PHP mezcle HTML de errores con el JSON
 error_reporting(E_ALL);
-// IMPORTANTE: no envíes errores al output; loguéalos
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 

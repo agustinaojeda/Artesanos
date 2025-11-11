@@ -50,7 +50,7 @@
 }
 
 /* ===============================
-   🔶 Botón SEGUIR (mismo estilo que home)
+   Botón SEGUIR (mismo estilo que home)
    =============================== */
 #btnSeguir,
 .btn-seguir {
@@ -72,7 +72,7 @@
 }
 
 /* ===============================
-   🔘 Flechas del carrusel (como home)
+    Flechas del carrusel (como home)
    =============================== */
 .carousel-control-prev-icon,
 .carousel-control-next-icon {
@@ -98,7 +98,7 @@
 }
 
 /* ===============================
-   🏷️ Título y descripción del carrusel
+   Título y descripción del carrusel
    =============================== */
 .carousel-caption {
   bottom: 10px;
@@ -118,7 +118,7 @@
 }
 
 /* ===============================
-   🖼️ Imagen centrada en modal
+      Imagen centrada en modal
    =============================== */
 .carousel-item img {
   object-fit: contain;
@@ -127,7 +127,7 @@
 }
 
 /* ===============================
-   ✨ Ajuste visual general del modal
+    Ajuste visual general del modal
    =============================== */
 .modal-content {
   border-radius: 10px;

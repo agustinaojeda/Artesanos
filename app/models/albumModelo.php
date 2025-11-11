@@ -94,7 +94,6 @@ class AlbumModelo
     {
         $cn = abrirConexion();
 
-        // Si quieres validar propiedad aquí también, usa el $idUsuario (opcional).
         if ($idUsuario !== null) {
             $sql = "SELECT urlPortadaAlbum 
                     FROM album 
@@ -121,8 +120,6 @@ class AlbumModelo
 
         if (!$portada) return null;
 
-        // Normaliza: si por alguna razón quedó guardada una ruta/URL completa,
-        // devuelve sólo el nombre de archivo esperado en /uploads/portadas.
         $basename = basename($portada);
         return $basename !== '' ? $basename : null;
     }
@@ -155,7 +152,7 @@ class AlbumModelo
             return [];
         }
 
-        // ✅ Soporta entornos SIN mysqlnd (sin get_result)
+        // Soporta entornos SIN mysqlnd (sin get_result)
         $rows = [];
         if (method_exists($stmt, 'get_result')) {
             $res = $stmt->get_result();
@@ -195,7 +192,7 @@ class AlbumModelo
         $stmt->close();
         cerrarConexion($cn);
 
-        // Normaliza nombre de archivo por si guardaste ruta completa
+        // Normaliza nombre de archivo por si se guardo la ruta completa
         foreach ($rows as &$r) {
             $r['urlImagen'] = basename((string)$r['urlImagen']);
         }

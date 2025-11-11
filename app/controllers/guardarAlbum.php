@@ -39,8 +39,6 @@ for ($i = 0; $i < $cantidad; $i++) {
 
 function guardarArchivo($archivo, $carpeta)
 {
-    // Ruta física a /public (no URL)
-    // En WAMP normalmente: C:\wamp64\www + /artesanos/Artesanos_Empanada2.0/public
     $publicPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . (isset($GLOBALS['basePath']) ? str_replace('/', DIRECTORY_SEPARATOR, $GLOBALS['basePath']) : '');
 
     // Directorio destino físico

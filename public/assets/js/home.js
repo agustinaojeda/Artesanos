@@ -105,7 +105,7 @@ async function manejarMeGusta(idImagen) {
 
   // --- MANEJAR EVENTO DE LIKE EN EL MODAL y GALERÍA (delegado) ---
   document.addEventListener("click", async (e) => {
-    // 1️⃣ - BOTÓN DE LIKE DEL MODAL
+    // BOTÓN DE LIKE DEL MODAL
     const btnLikeModal = e.target.closest("#btn-like-imagen");
     if (btnLikeModal) {
       e.preventDefault();
@@ -120,7 +120,7 @@ async function manejarMeGusta(idImagen) {
       return;
     }
 
-    // 2️⃣ - BOTÓN DE LIKE DE LA GALERÍA (Home) → Like de ÁLBUM
+    // BOTÓN DE LIKE DE LA GALERÍA (Home) → Like de ÁLBUM
     const btnLikeGaleria = e.target.closest(".btn-like-galeria");
     if (btnLikeGaleria) {
       e.preventDefault();
@@ -787,9 +787,6 @@ if (btnCrearEl) btnCrearEl.addEventListener("click", function (e) {
     formData.append("esPublico", selPriv.value);
   }
 
-  //imagenes
-  // Enviar todas las seleccionadas; si no hay datos cargados para alguna,
-  // usar valores por defecto y el archivo directo de 'imagenes'
   for (let i = 0; i < imagenes.length; i++) {
     const datos = datosImagenes[i] || {
       archivo: imagenes[i],

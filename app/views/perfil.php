@@ -563,7 +563,7 @@ include VIEW_PATH . '/nav.php';
     </div>
 <!-- Agregar esto después de tus otros modales -->
 <div class="modal fade" id="modalEditarAlbum" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg"> <!-- Changed to modal-lg for more space -->
+    <div class="modal-dialog modal-lg"> <!-- Cambiado a modal-lg para tener más espacio -->
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Editar álbum</h5>
@@ -605,13 +605,13 @@ include VIEW_PATH . '/nav.php';
                 <hr>
                 <h6 class="mt-4">Imágenes del álbum</h6>
                 <div id="albumImagesList" class="row g-3 mt-2">
-                    <!-- Images will be loaded here dynamically -->
+                    <!-- Las imágenes se cargarán aquí dinámicamente -->
                 </div>
                 
                 <!-- Input oculto para agregar nuevas imágenes -->
                 <input type="file" id="inputNuevasImagenes" multiple accept="image/*" style="display: none;">
 
-                <!-- Image Edit Form (initially hidden) -->
+                <!-- Formulario de edición de imágenes (oculto inicialmente) -->
                 <div id="imageEditForm" class="mt-4 d-none">
                     <hr>
                     <h6>Editar imagen</h6>
@@ -748,12 +748,11 @@ include VIEW_PATH . '/nav.php';
                                 $coverUrl = "$basePath/uploads/portadas/" . e($portada);
                             }
 
-                            // ✅ Agregá esta línea
                             $albumDate = new DateTime($album['fechaCreacionAlbum']);
                             ?>
                             <div class="album-card position-relative" data-id="<?= (int)$album['idAlbum'] ?>">
 
-                            <!-- ✅ Menú de tres puntitos (NO abre el modal) -->
+                            <!-- Menú de tres puntitos (NO abre el modal) -->
                             <div class="dropdown opciones-album position-absolute top-0 end-0 m-2">
                                 <button class="btn btn-light btn-sm opciones-btn" data-bs-toggle="dropdown"
                                         onclick="event.stopPropagation();">
@@ -1238,7 +1237,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* =====================================================
-      2. BOTÓN SEGUIR / DEJAR DE SEGUIR
+            2. BOTÓN SEGUIR / DEJAR DE SEGUIR
   ====================================================== */
   document.addEventListener('click', function(e) {
     const btn = e.target.closest('#follow-btn');
@@ -1515,7 +1514,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Show current cover when opening modal
+    // Mostrar la portada actual al abrir el modal
     document.querySelectorAll('.editar-album').forEach(btn => {
         btn.addEventListener('click', async function(e) {
             e.preventDefault();

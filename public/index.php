@@ -2,11 +2,13 @@
 declare(strict_types=1);
 
 /**
- * Front controller
+ * Controlador Frontal (Front Controller) de la aplicación
  * (/artesanos/Artesanos_Empanada2.0/public).
+ * El objetivo principal de este script es centralizar todas las peticiones HTTP entrantes, 
+ * inicializar el entorno necesario y, basándose en la URL solicitada, cargar el archivo de vista o 
+ * controlador correspondiente.
  */
 
-//debug for dev
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
@@ -76,7 +78,7 @@ try {
             require VIEW_PATH . '/actualizarContrasena.php';
             break;
 
-        //endpoints api, only return json response 
+        //endpoints api, solo devuelve respuestas JSON. 
         case '/api/listarNotificaciones':
             require CTRL_PATH . '/listarNotificaciones.php';
             break;

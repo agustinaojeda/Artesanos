@@ -20,7 +20,7 @@ function parseMySQLDateToMs(mysqlDate) {
   const minute = parseInt(horaPart[1], 10);
   const second = horaPart.length > 2 ? parseInt(horaPart[2], 10) : 0;
 
-  // Crea la fecha en zona local (evita problemas de interpretación automática)
+  // Crea la fecha en zona local 
   return new Date(year, month, day, hour, minute, second).getTime();
 }
 
@@ -716,7 +716,7 @@ window.cargarDetalleLikesUsuario = async function(idUsuario) {
         console.error('Carrusel no encontrado. ID buscado:', data.carruselId || "carouselAlbumVirtual");
       }
 
-      // Comentarios (similar al código existente)
+      // Comentarios 
       if (btnEnviar && inputComentario && listaComentarios) {
         function mostrarComentarios(idImg) {
           if (!data.comentarios || !data.comentarios[idImg]) {
